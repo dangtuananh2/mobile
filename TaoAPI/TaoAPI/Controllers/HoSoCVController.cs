@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaoAPI.Entities;
 using System.Globalization;
@@ -31,7 +31,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy ứng viên theo tài khoản này"
+                        message = "Kh�ng t�m th?y ?ng vi�n theo t�i kho?n n�y"
                     });
                 }
 
@@ -42,7 +42,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy tài khoản"
+                        message = "Kh�ng t�m th?y t�i kho?n"
                     });
                 }
 
@@ -85,7 +85,7 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "Lưu CV thành công",
+                    message = "Luu CV th�nh c�ng",
                     idCv = cv.IdCv,
                     loaiMauCv = cv.LoaiMauCv
                 });
@@ -94,7 +94,7 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi lưu CV",
+                    message = "L?i khi luu CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -115,7 +115,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Chưa có CV nào"
+                        message = "Chua c� CV n�o"
                     });
                 }
 
@@ -125,7 +125,7 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi lấy CV",
+                    message = "L?i khi l?y CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -154,7 +154,7 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi lấy danh sách CV",
+                    message = "L?i khi l?y danh s�ch CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -186,7 +186,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy CV"
+                        message = "Kh�ng t�m th?y CV"
                     });
                 }
 
@@ -196,7 +196,40 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi lấy CV theo id",
+                    message = "L?i khi l?y CV theo id",
+                    error = ex.Message,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
+
+        // ? M?I: GET: api/HoSoCV/by-tin-tuyen-dung/5
+        [HttpGet("by-tin-tuyen-dung/{idTinTuyenDung}")]
+        public async Task<ActionResult> GetByTinTuyenDung(int idTinTuyenDung)
+        {
+            try
+            {
+                var list = await (
+                    from ut in _context.UngTuyens
+                    join cv in _context.HoSoCvs on ut.IdCv equals cv.IdCv
+                    join uv in _context.UngViens on cv.IdUngvien equals uv.IdUngvien
+                    join tk in _context.TaiKhoans on uv.IdTaikhoan equals tk.IdTaikhoan
+                    where ut.IdTin == idTinTuyenDung
+                    select new CvJoinResult
+                    {
+                        Cv = cv,
+                        UngVien = uv,
+                        TaiKhoan = tk
+                    }
+                ).ToListAsync();
+
+                return Ok(list.Select(x => ToCvResponse(x.Cv, x.UngVien, x.TaiKhoan)));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "L?i khi l?y CV theo tin tuy?n d?ng",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -218,7 +251,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy CV"
+                        message = "Kh�ng t�m th?y CV"
                     });
                 }
 
@@ -229,7 +262,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy ứng viên"
+                        message = "Kh�ng t�m th?y ?ng vi�n"
                     });
                 }
 
@@ -240,7 +273,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy tài khoản"
+                        message = "Kh�ng t�m th?y t�i kho?n"
                     });
                 }
 
@@ -277,7 +310,7 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "Cập nhật CV thành công",
+                    message = "C?p nh?t CV th�nh c�ng",
                     idCv = cv.IdCv,
                     loaiMauCv = cv.LoaiMauCv
                 });
@@ -286,7 +319,7 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi cập nhật CV",
+                    message = "L?i khi c?p nh?t CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -307,7 +340,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Không tìm thấy CV"
+                        message = "Kh�ng t�m th?y CV"
                     });
                 }
 
@@ -318,14 +351,14 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "Cập nhật trạng thái CV thành công"
+                    message = "C?p nh?t tr?ng th�i CV th�nh c�ng"
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new
                 {
-                    message = "Lỗi khi cập nhật trạng thái CV",
+                    message = "L?i khi c?p nh?t tr?ng th�i CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -516,7 +549,7 @@ namespace TaoAPI.Controllers
                 {
                     return BadRequest(new
                     {
-                        message = "Email này đã được tài khoản khác sử dụng"
+                        message = "Email n�y d� du?c t�i kho?n kh�c s? d?ng"
                     });
                 }
 
