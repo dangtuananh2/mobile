@@ -5,7 +5,10 @@ import 'package:do_an_mobile/UngVien/views/trangchu.dart';
 import 'package:do_an_mobile/NTD/views/home_ntd_page.dart';
 import 'package:do_an_mobile/Admin/views/admin.dart';
 
-import 'package:do_an_mobile/UngVien/controllers/auth_controller.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -18,78 +21,177 @@ class _DangNhapState extends State<DangNhap> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final AuthController _authController = AuthController();
-
   bool _isLoading = false;
   bool _hidePassword = true;
+
+  static const Color primaryGreen = Colors.green;
+
+  String get apiUrl {
+    // Chạy Chrome/Desktop:
+    return "http://localhost:5249/api/TaiKhoan/login";
+
+    // Chạy Android Emulator thì dùng dòng dưới:
+    // return "http://10.0.2.2:5249/api/TaiKhoan/login";
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+  }
+
+  String? _validatePassword(String password) {
+    if (password.isEmpty) {
+      return "Vui lòng nhập mật khẩu";
+    }
+
+    if (password.length < 8 || password.length > 32) {
+      return "Mật khẩu phải từ 8 đến 32 ký tự";
+    }
+
+    if (!RegExp(r'[A-Za-z]').hasMatch(password)) {
+      return "Mật khẩu phải có ít nhất 1 chữ cái";
+    }
+
+    if (!RegExp(r'\d').hasMatch(password)) {
+      return "Mật khẩu phải có ít nhất 1 chữ số";
+    }
+
+    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(password)) {
+      return "Mật khẩu phải có ít nhất 1 ký tự đặc biệt";
+    }
+
+    return null;
+  }
 
   Future<void> loginUser() async {
     final String email = _emailController.text.trim();
     final String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập đầy đủ thông tin")),
-      );
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Vui lòng nhập email")));
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Email không hợp lệ")));
+      return;
+    }
+
+    final String? passwordError = _validatePassword(password);
+    if (passwordError != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(passwordError)));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final user = await _authController.login(
-        email: email,
-        password: password,
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "matKhau": password}),
       );
 
-      if (!mounted) return;
+      debugPrint("LOGIN STATUS: ${response.statusCode}");
+      debugPrint("LOGIN BODY: ${response.body}");
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Đăng nhập thành công!")));
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
 
-      if (user.vaiTro == "admin") {
-        Navigator.pushReplacement(
+        final int userId =
+            userData['idTaikhoan'] ?? userData['IdTaikhoan'] ?? 0;
+
+        final String userEmail =
+            userData['email'] ?? userData['Email'] ?? email;
+
+        final String vaiTro =
+            userData['vaiTro'] ?? userData['VaiTro'] ?? "ung_vien";
+
+        final String userName =
+            userData['hoTen'] ??
+            userData['HoTen'] ??
+            userData['tenCongTy'] ??
+            userData['TenCongTy'] ??
+            "Người dùng";
+
+        await prefs.setInt('userId', userId);
+        await prefs.setString('userEmail', userEmail);
+        await prefs.setString('userName', userName);
+        await prefs.setString('vaiTro', vaiTro);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
-        );
-      } else if (user.vaiTro == "nha_tuyen_dung" || user.vaiTro == "ntd") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeNtdPage()),
-        );
+        ).showSnackBar(const SnackBar(content: Text("Đăng nhập thành công!")));
+
+        if (vaiTro == "admin") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        } else if (vaiTro == "nha_tuyen_dung" || vaiTro == "ntd") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeNtdPage()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const TrangChu()),
+          );
+        }
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const TrangChu()),
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response.body.isEmpty
+                  ? "Email hoặc mật khẩu không chính xác"
+                  : response.body,
+            ),
+          ),
         );
       }
     } catch (e) {
-      debugPrint("Lỗi đăng nhập: $e");
+      debugPrint("Lỗi kết nối: $e");
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đăng nhập thất bại: $e")),
+        const SnackBar(content: Text("Không kết nối được server")),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
-      final user = await _authController.signInWithGoogle();
-      if (user == null) return;
+      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
 
-      if (!mounted) return;
+      if (account != null) {
+        final prefs = await SharedPreferences.getInstance();
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const TrangChu()),
-      );
+        await prefs.setString('userEmail', account.email);
+        await prefs.setString('userName', account.displayName ?? "Người dùng");
+        await prefs.setString('vaiTro', "ung_vien");
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TrangChu()),
+        );
+      }
     } catch (e) {
       debugPrint("Google login error: $e");
     }
@@ -115,7 +217,7 @@ class _DangNhapState extends State<DangNhap> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: icon == null ? null : Icon(icon, color: Colors.green),
+        prefixIcon: icon == null ? null : Icon(icon, color: primaryGreen),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -125,9 +227,7 @@ class _DangNhapState extends State<DangNhap> {
                   color: Colors.grey,
                 ),
                 onPressed: () {
-                  setState(() {
-                    _hidePassword = !_hidePassword;
-                  });
+                  setState(() => _hidePassword = !_hidePassword);
                 },
               )
             : null,
@@ -176,10 +276,8 @@ class _DangNhapState extends State<DangNhap> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25),
-
               child: SingleChildScrollView(
                 child: Column(
                   children: [
@@ -267,14 +365,15 @@ class _DangNhapState extends State<DangNhap> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
+                          disabledBackgroundColor: Colors.green.withOpacity(
+                            0.5,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 15),
                         ),
-
                         onPressed: _isLoading ? null : loginUser,
-
                         child: _isLoading
                             ? const SizedBox(
                                 height: 20,
@@ -307,9 +406,7 @@ class _DangNhapState extends State<DangNhap> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         socialImage("assets/images/facebook.jpg", () {}),
-
                         const SizedBox(width: 20),
-
                         socialImage(
                           "assets/images/google.jpg",
                           () => signInWithGoogle(context),
@@ -323,7 +420,6 @@ class _DangNhapState extends State<DangNhap> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text("Bạn chưa có tài khoản? "),
-
                         GestureDetector(
                           onTap: () {
                             Navigator.push(

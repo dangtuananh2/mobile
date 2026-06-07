@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace TaoAPI.Entities;
 
@@ -8,7 +9,7 @@ public partial class HoSoCv
 
     public int IdUngvien { get; set; }
 
-    public string? LoaiMauCv { get; set; }
+    public string LoaiMauCv { get; set; } = null!;
 
     public string? TieuDeCv { get; set; }
 
@@ -43,4 +44,6 @@ public partial class HoSoCv
     public DateTime? NgayCapNhat { get; set; }
 
     public virtual UngVien IdUngvienNavigation { get; set; } = null!;
+
+    public virtual ICollection<UngTuyen> UngTuyens { get; set; } = new List<UngTuyen>();
 }

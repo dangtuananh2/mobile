@@ -13,10 +13,13 @@ public partial class TaiKhoan
 
     public string? SoDienThoai { get; set; }
 
-    public string? VaiTro { get; set; }
+    public string VaiTro { get; set; } = null!;
+
     public bool? TrangThai { get; set; }
 
     public DateTime? NgayTao { get; set; }
 
-    public virtual ICollection<UngVien> UngViens { get; set; } = new List<UngVien>();
+    public virtual NhaTuyenDung? NhaTuyenDung { get; set; }
+
+    public virtual UngVien? UngVien { get; set; }
 }

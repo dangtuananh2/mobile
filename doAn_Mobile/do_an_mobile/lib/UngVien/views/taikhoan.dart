@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:do_an_mobile/UngVien/views/quenmatkhau.dart';
 import 'package:flutter/material.dart';
 import 'package:do_an_mobile/UngVien/controllers/ung_vien_profile_controller.dart';
 import 'package:do_an_mobile/UngVien/models/ung_vien_profile_model.dart';
@@ -88,8 +89,8 @@ class _TaiKhoanState extends State<TaiKhoan> {
 
   Future<void> _loadUserData() async {
     try {
-      final UngVienProfileModel localProfile =
-          await _profileController.loadLocalProfile();
+      final UngVienProfileModel localProfile = await _profileController
+          .loadLocalProfile();
 
       if (mounted) {
         setState(() {
@@ -101,8 +102,9 @@ class _TaiKhoanState extends State<TaiKhoan> {
         });
       }
 
-      final remoteProfile =
-          await _profileController.fetchRemoteAccount(localProfile);
+      final remoteProfile = await _profileController.fetchRemoteAccount(
+        localProfile,
+      );
 
       if (remoteProfile == null || !mounted) return;
 
@@ -148,17 +150,17 @@ class _TaiKhoanState extends State<TaiKhoan> {
         selectedAvatarBytes = bytes;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Đã cập nhật ảnh đại diện")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Đã cập nhật ảnh đại diện")));
     } catch (e) {
       debugPrint("Lỗi chọn ảnh: $e");
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi chọn ảnh: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Lỗi chọn ảnh: $e")));
     }
   }
 
@@ -393,9 +395,9 @@ class _TaiKhoanState extends State<TaiKhoan> {
     final int userId = localProfile.userId;
 
     if (userId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Không tìm thấy tài khoản")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Không tìm thấy tài khoản")));
       return;
     }
 
@@ -810,7 +812,7 @@ class _TaiKhoanState extends State<TaiKhoan> {
                                 icon: Icons.lock_outline,
                                 title: "Đổi mật khẩu",
                                 subtitle: "Cập nhật mật khẩu đăng nhập",
-                                onTap: () => _goTo(const CapNhatMatKhau()),
+                                onTap: () => _goTo(const QuenMatKhau()),
                               ),
                               _divider(),
                               _menuItem(

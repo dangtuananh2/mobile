@@ -28,4 +28,6 @@ public partial class UngVien
     public virtual ICollection<HoSoCv> HoSoCvs { get; set; } = new List<HoSoCv>();
 
     public virtual TaiKhoan IdTaikhoanNavigation { get; set; } = null!;
+
+    public virtual ICollection<LuuTin> LuuTins { get; set; } = new List<LuuTin>();
 }
