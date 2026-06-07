@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/ung_vien_profile_model.dart';
@@ -41,11 +43,45 @@ class UngVienProfileController {
     );
   }
 
+  // ================= AVATAR CHO CV =================
+
+  Uint8List? avatarBytes;
+  String? avatarBase64;
+  String? avatarFileName;
+
+  void setCvAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    avatarBytes = bytes;
+    avatarFileName = fileName;
+    avatarBase64 = base64Encode(bytes);
+  }
+
+  void setCvAvatarFromBase64(String? value) {
+    if (value == null || value.trim().isEmpty) return;
+
+    try {
+      avatarBase64 = value;
+      avatarBytes = base64Decode(value);
+    } catch (_) {
+      avatarBase64 = null;
+      avatarBytes = null;
+    }
+  }
+
+  void clearCvAvatar() {
+    avatarBytes = null;
+    avatarBase64 = null;
+    avatarFileName = null;
+  }
+
   // ================= CONTROLLERS CHO TAOMAU.DART =================
 
   final TextEditingController tenCvController = TextEditingController();
   final TextEditingController hoTenController = TextEditingController();
   final TextEditingController viTriUngTuyenController = TextEditingController();
+  final TextEditingController nganhNgheController = TextEditingController();
   final TextEditingController soDienThoaiController = TextEditingController();
   final TextEditingController ngaySinhController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -116,9 +152,11 @@ class UngVienProfileController {
     }
   }
 
-  // ================= LƯU CV TỪ TAOMAU.DART =================
+  // ================= BUILD BODY CV =================
 
-  Future<void> saveTaoMauCvToDatabase() async {
+  Map<String, dynamic> _buildCvBody({
+    required String type,
+  }) {
     final hocVan = {
       "nganhHoc": nganhHocController.text.trim(),
       "thoiGian": thoiGianHocController.text.trim(),
@@ -152,31 +190,108 @@ class UngVienProfileController {
       "moTa": hoatDongMoTaController.text.trim(),
     };
 
-    final body = {
-      "tieuDeCv": tenCvController.text.trim().isEmpty
-          ? "CV_${hoTenController.text.trim()}"
-          : tenCvController.text.trim(),
-      "anhCv": "",
-      "hoTen": hoTenController.text.trim(),
+    final hoTen = hoTenController.text.trim();
+
+    final tieuDeCv = tenCvController.text.trim().isEmpty
+        ? "CV_$hoTen"
+        : tenCvController.text.trim();
+
+    return {
+      "tieuDeCv": tieuDeCv,
+      "tieu_de_cv": tieuDeCv,
+
+      "anhCv": avatarBase64 ?? "",
+      "anh_cv": avatarBase64 ?? "",
+
+      "hoTen": hoTen,
+      "ho_ten": hoTen,
+
       "viTriUngTuyen": viTriUngTuyenController.text.trim(),
+      "vi_tri_ung_tuyen": viTriUngTuyenController.text.trim(),
+
       "soDienThoai": soDienThoaiController.text.trim(),
+      "so_dien_thoai": soDienThoaiController.text.trim(),
+
       "ngaySinh": ngaySinhController.text.trim(),
+      "ngay_sinh": ngaySinhController.text.trim(),
+
       "email": emailController.text.trim(),
+
       "profileFacebook": facebookController.text.trim(),
+      "profile_facebook": facebookController.text.trim(),
+
       "diaChi": diaChiController.text.trim(),
+      "dia_chi": diaChiController.text.trim(),
+
       "nguoiGioiThieu": nguoiGioiThieuController.text.trim(),
+      "nguoi_gioi_thieu": nguoiGioiThieuController.text.trim(),
+
       "mucTieu": mucTieuController.text.trim(),
+      "muc_tieu": mucTieuController.text.trim(),
+
       "hocVan": jsonEncode(hocVan),
+      "hoc_van": jsonEncode(hocVan),
+
       "moTaHocVan": moTaHocVanController.text.trim(),
+      "mo_ta_hoc_van": moTaHocVanController.text.trim(),
+
       "kinhNghiem": jsonEncode(kinhNghiem),
+      "kinh_nghiem": jsonEncode(kinhNghiem),
+
       "kyNang": kyNangController.text.trim(),
+      "ky_nang": kyNangController.text.trim(),
+
       "soThich": soThichController.text.trim(),
+      "so_thich": soThichController.text.trim(),
+
       "chungChi": jsonEncode(chungChi),
+      "chung_chi": jsonEncode(chungChi),
+
       "danhHieu": jsonEncode(danhHieu),
+      "danh_hieu": jsonEncode(danhHieu),
+
       "hoatDong": jsonEncode(hoatDong),
-      "nganhNghe": viTriUngTuyenController.text.trim(),
+      "hoat_dong": jsonEncode(hoatDong),
+
+      "nganhNghe": nganhNgheController.text.trim(),
+      "nganh_nghe": nganhNgheController.text.trim(),
+
       "trangThaiTimViec": true,
+      "trang_thai_tim_viec": true,
+
+      "loaiMauCv": type,
+      "loai_mau_cv": type,
     };
+  }
+
+  // ================= LƯU CV TỪ TAOMAU.DART =================
+
+  Future<String> createTaoMauCvToDatabase({
+    required String type,
+  }) async {
+    final body = _buildCvBody(type: type);
+
+    final idCv = await _cvController.createCvAndReturnId(body);
+
+    return idCv;
+  }
+
+  Future<String> updateTaoMauCvToDatabase({
+    required String idCv,
+    required String type,
+  }) async {
+    final body = _buildCvBody(type: type);
+
+    await _cvController.updateCvById(
+      idCv: idCv,
+      body: body,
+    );
+
+    return idCv;
+  }
+
+  Future<void> saveTaoMauCvToDatabase() async {
+    final body = _buildCvBody(type: "simple");
 
     await _cvController.createCv(body);
   }
@@ -187,6 +302,7 @@ class UngVienProfileController {
     tenCvController.dispose();
     hoTenController.dispose();
     viTriUngTuyenController.dispose();
+    nganhNgheController.dispose();
     soDienThoaiController.dispose();
     ngaySinhController.dispose();
     emailController.dispose();

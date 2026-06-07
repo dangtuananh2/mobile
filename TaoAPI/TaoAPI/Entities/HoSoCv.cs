@@ -8,6 +8,8 @@ public partial class HoSoCv
 
     public int IdUngvien { get; set; }
 
+    public string? LoaiMauCv { get; set; }
+
     public string? TieuDeCv { get; set; }
 
     public string? AnhCv { get; set; }
@@ -34,7 +36,11 @@ public partial class HoSoCv
 
     public bool? TrangThaiTimViec { get; set; }
 
+    public bool? TrangThai { get; set; }
+
     public DateTime? NgayTao { get; set; }
+
+    public DateTime? NgayCapNhat { get; set; }
 
     public virtual UngVien IdUngvienNavigation { get; set; } = null!;
 }

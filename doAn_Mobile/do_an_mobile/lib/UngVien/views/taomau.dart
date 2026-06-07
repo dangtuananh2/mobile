@@ -1,11 +1,26 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+
 import 'package:do_an_mobile/UngVien/controllers/ung_vien_profile_controller.dart';
+import 'package:do_an_mobile/UngVien/controllers/cv_controller.dart';
+import 'package:do_an_mobile/UngVien/models/ho_so_cv_model.dart';
 import 'package:do_an_mobile/UngVien/views/luucv.dart';
+import 'package:do_an_mobile/UngVien/views/cv_templates/simple_cv_template.dart';
+import 'package:do_an_mobile/UngVien/views/cv_templates/pro_cv_template.dart';
 
 class TaoMau extends StatefulWidget {
   final String type;
+  final bool isEdit;
+  final String? idCv;
 
-  const TaoMau({super.key, this.type = "simple"});
+  const TaoMau({
+    super.key,
+    this.type = "simple",
+    this.isEdit = false,
+    this.idCv,
+  });
 
   @override
   State<TaoMau> createState() => _TaoMauState();
@@ -15,14 +30,306 @@ class _TaoMauState extends State<TaoMau> {
   final UngVienProfileController _profileController =
       UngVienProfileController();
 
-  bool isSaving = false;
+  final CvController _cvController = CvController();
 
-  // 🔥 STATE (chỉ dùng cho SIMPLE)
-  List<int> experiences = [1];
-  List<int> activities = [1];
-  List<int> certificates = [1];
-  List<int> skills = [1];
-  List<int> hobbies = [1];
+  bool isSaving = false;
+  bool isLoadingOldCv = false;
+  bool isPickingAvatar = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.isEdit && widget.idCv != null) {
+      isLoadingOldCv = true;
+      loadCvById(widget.idCv!);
+    }
+  }
+
+  Future<void> pickCvAvatar() async {
+    if (isPickingAvatar) return;
+
+    setState(() {
+      isPickingAvatar = true;
+    });
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (!mounted) return;
+
+      if (result == null || result.files.isEmpty) {
+        setState(() {
+          isPickingAvatar = false;
+        });
+        return;
+      }
+
+      final file = result.files.first;
+
+      if (file.bytes == null) {
+        setState(() {
+          isPickingAvatar = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Không đọc được ảnh đã chọn"),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _profileController.setCvAvatar(
+          bytes: file.bytes!,
+          fileName: file.name,
+        );
+        isPickingAvatar = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Đã chọn ảnh: ${file.name}"),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isPickingAvatar = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Lỗi chọn ảnh: $e"),
+        ),
+      );
+    }
+  }
+
+  Future<void> loadCvById(String idCv) async {
+    try {
+      final HoSoCvModel cv = await _cvController.getCvById(idCv);
+
+      if (!mounted) return;
+
+      _fillControllersFromCv(cv);
+
+      setState(() {
+        isLoadingOldCv = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingOldCv = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi tải dữ liệu CV: $e")),
+      );
+    }
+  }
+
+  void _fillControllersFromCv(HoSoCvModel cv) {
+    String getValue(List<String> keys, {String defaultValue = ""}) {
+      return cv.getValue(keys, defaultValue: defaultValue);
+    }
+
+    Map<String, dynamic> parseJsonMap(String value) {
+      if (value.trim().isEmpty) return {};
+
+      try {
+        final decoded = jsonDecode(value);
+
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+
+        return {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    String firstText(Map<String, dynamic> map, List<String> keys) {
+      for (final key in keys) {
+        final value = map[key];
+
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+
+      return "";
+    }
+
+    _profileController.tenCvController.text = getValue(
+      ["tieuDeCv", "tieu_de_cv"],
+    );
+
+    _profileController.setCvAvatarFromBase64(
+      getValue(["anhCv", "anh_cv"]),
+    );
+
+    _profileController.hoTenController.text = getValue(
+      ["hoTen", "ho_ten"],
+    );
+
+    _profileController.viTriUngTuyenController.text = getValue(
+      ["viTriUngTuyen", "vi_tri_ung_tuyen"],
+    );
+
+    _profileController.soDienThoaiController.text = getValue(
+      ["soDienThoai", "so_dien_thoai"],
+    );
+
+    _profileController.ngaySinhController.text = getValue(
+      ["ngaySinh", "ngay_sinh"],
+    );
+
+    _profileController.emailController.text = getValue(
+      ["email"],
+    );
+
+    _profileController.facebookController.text = getValue(
+      ["profileFacebook", "profile_facebook"],
+    );
+
+    _profileController.diaChiController.text = getValue(
+      ["diaChi", "dia_chi"],
+    );
+
+    _profileController.nguoiGioiThieuController.text = getValue(
+      ["nguoiGioiThieu", "nguoi_gioi_thieu"],
+    );
+
+    _profileController.mucTieuController.text = getValue(
+      ["mucTieu", "muc_tieu"],
+    );
+
+    _profileController.moTaHocVanController.text = getValue(
+      ["moTaHocVan", "mo_ta_hoc_van"],
+    );
+
+    final hocVan = parseJsonMap(
+      getValue(["hocVan", "hoc_van"]),
+    );
+
+    _profileController.nganhHocController.text = firstText(
+      hocVan,
+      ["nganhHoc", "nganh_hoc", "nganh", "monHoc", "mon_hoc"],
+    );
+
+    _profileController.thoiGianHocController.text = firstText(
+      hocVan,
+      ["thoiGianHoc", "thoi_gian_hoc", "thoiGian", "thoi_gian"],
+    );
+
+    _profileController.tenTruongController.text = firstText(
+      hocVan,
+      ["tenTruong", "ten_truong", "truong", "truongHoc", "truong_hoc"],
+    );
+
+    final kinhNghiem = parseJsonMap(
+      getValue(["kinhNghiem", "kinh_nghiem"]),
+    );
+
+    _profileController.kinhNghiemViTriController.text = firstText(
+      kinhNghiem,
+      ["viTri", "vi_tri", "chucVu", "chuc_vu"],
+    );
+
+    _profileController.kinhNghiemTuController.text = firstText(
+      kinhNghiem,
+      ["tu", "tuNgay", "tu_ngay", "batDau", "bat_dau"],
+    );
+
+    _profileController.kinhNghiemDenController.text = firstText(
+      kinhNghiem,
+      ["den", "denNgay", "den_ngay", "ketThuc", "ket_thuc"],
+    );
+
+    _profileController.kinhNghiemCongTyController.text = firstText(
+      kinhNghiem,
+      ["congTy", "cong_ty", "tenCongTy", "ten_cong_ty"],
+    );
+
+    _profileController.kinhNghiemMoTaController.text = firstText(
+      kinhNghiem,
+      ["moTa", "mo_ta", "moTaCongViec", "mo_ta_cong_viec"],
+    );
+
+    _profileController.kyNangController.text = getValue(
+      ["kyNang", "ky_nang"],
+    );
+
+    _profileController.soThichController.text = getValue(
+      ["soThich", "so_thich"],
+    );
+
+    final chungChi = parseJsonMap(
+      getValue(["chungChi", "chung_chi"]),
+    );
+
+    _profileController.chungChiThoiGianController.text = firstText(
+      chungChi,
+      ["thoiGian", "thoi_gian"],
+    );
+
+    _profileController.chungChiTenController.text = firstText(
+      chungChi,
+      ["ten", "tenChungChi", "ten_chung_chi", "chungChi", "chung_chi"],
+    );
+
+    final danhHieu = parseJsonMap(
+      getValue(["danhHieu", "danh_hieu"]),
+    );
+
+    _profileController.danhHieuThoiGianController.text = firstText(
+      danhHieu,
+      ["thoiGian", "thoi_gian"],
+    );
+
+    _profileController.danhHieuTenController.text = firstText(
+      danhHieu,
+      ["ten", "tenDanhHieu", "ten_danh_hieu", "danhHieu", "danh_hieu"],
+    );
+
+    final hoatDong = parseJsonMap(
+      getValue(["hoatDong", "hoat_dong"]),
+    );
+
+    _profileController.hoatDongViTriController.text = firstText(
+      hoatDong,
+      ["viTri", "vi_tri", "vaiTro", "vai_tro"],
+    );
+
+    _profileController.hoatDongTuController.text = firstText(
+      hoatDong,
+      ["tu", "tuNgay", "tu_ngay", "batDau", "bat_dau"],
+    );
+
+    _profileController.hoatDongDenController.text = firstText(
+      hoatDong,
+      ["den", "denNgay", "den_ngay", "ketThuc", "ket_thuc"],
+    );
+
+    _profileController.hoatDongToChucController.text = firstText(
+      hoatDong,
+      ["toChuc", "to_chuc", "tenToChuc", "ten_to_chuc"],
+    );
+
+    _profileController.hoatDongMoTaController.text = firstText(
+      hoatDong,
+      ["moTa", "mo_ta"],
+    );
+  }
 
   Future<void> saveCvToDatabase() async {
     if (isSaving) return;
@@ -32,18 +339,35 @@ class _TaoMauState extends State<TaoMau> {
     });
 
     try {
-      await _profileController.saveTaoMauCvToDatabase();
+      String savedIdCv;
+
+      if (widget.isEdit && widget.idCv != null) {
+        savedIdCv = await _profileController.updateTaoMauCvToDatabase(
+          idCv: widget.idCv!,
+          type: widget.type,
+        );
+      } else {
+        savedIdCv = await _profileController.createTaoMauCvToDatabase(
+          type: widget.type,
+        );
+      }
 
       if (!mounted) return;
 
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const LuuCvPage(),
+          builder: (context) => LuuCvPage(
+            showDownloadButton: true,
+            showEditButton: true,
+            idCv: savedIdCv,
+            type: widget.type,
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Lỗi lưu CV: $e")),
       );
@@ -64,14 +388,26 @@ class _TaoMauState extends State<TaoMau> {
 
   @override
   Widget build(BuildContext context) {
+    final Widget cvTemplate = widget.type == "pro"
+        ? ProCvTemplate(
+            profileController: _profileController,
+            onPickAvatar: pickCvAvatar,
+          )
+        : SimpleCvTemplate(
+            profileController: _profileController,
+            onPickAvatar: pickCvAvatar,
+          );
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black,
+          ),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -87,9 +423,13 @@ class _TaoMauState extends State<TaoMau> {
         ),
         centerTitle: true,
       ),
-
-      body: widget.type == "pro" ? buildProfessionalCV() : buildSimpleCV(),
-
+      body: isLoadingOldCv
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.green,
+              ),
+            )
+          : cvTemplate,
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(15),
         child: SizedBox(
@@ -99,644 +439,15 @@ class _TaoMauState extends State<TaoMau> {
               backgroundColor: Colors.green,
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
-            onPressed: isSaving ? null : saveCvToDatabase,
+            onPressed: isSaving || isLoadingOldCv || isPickingAvatar
+                ? null
+                : saveCvToDatabase,
             child: Text(
               isSaving ? "Đang lưu..." : "Lưu CV",
               style: const TextStyle(color: Colors.white),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ================= SIMPLE =================
-  Widget buildSimpleCV() {
-    return SingleChildScrollView(
-      child: Container(
-        margin: const EdgeInsets.all(10),
-        color: Colors.white,
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // LEFT (GIỮ NGUYÊN)
-              Container(
-                width: 150,
-                height: double.infinity,
-                color: const Color(0xFF5D4037),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
-                    const SizedBox(height: 20),
-
-                    TextField(
-                      controller: _profileController.hoTenController,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      cursorColor: Colors.white,
-                      decoration: const InputDecoration(
-                        hintText: "Họ tên",
-                        hintStyle: TextStyle(color: Colors.white),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    TextField(
-                      controller: _profileController.viTriUngTuyenController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      decoration: const InputDecoration(
-                        hintText: "Vị trí ứng tuyển",
-                        hintStyle: TextStyle(color: Colors.white),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-                    const Divider(color: Colors.white),
-
-                    infoInput(
-                      Icons.phone,
-                      "Số điện thoại",
-                      controller: _profileController.soDienThoaiController,
-                    ),
-                    infoInput(
-                      Icons.calendar_today,
-                      "Ngày sinh",
-                      controller: _profileController.ngaySinhController,
-                      isDate: true,
-                    ),
-                    infoInput(
-                      Icons.email,
-                      "Email",
-                      controller: _profileController.emailController,
-                    ),
-                    infoInput(
-                      Icons.person,
-                      "Profile Facebook",
-                      controller: _profileController.facebookController,
-                    ),
-                    infoInput(
-                      Icons.location_on,
-                      "Địa chỉ",
-                      controller: _profileController.diaChiController,
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ================= HỌC VẤN =================
-                    sectionTitle("Học vấn"),
-
-                    TextField(
-                      controller: _profileController.nganhHocController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      decoration: const InputDecoration(
-                        hintText: "Ngành học / Môn học",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    TextField(
-                      controller: _profileController.thoiGianHocController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      decoration: const InputDecoration(
-                        hintText: "Bắt đầu - Kết thúc",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    TextField(
-                      controller: _profileController.tenTruongController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      decoration: const InputDecoration(
-                        hintText: "Tên trường học",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    TextField(
-                      controller: _profileController.moTaHocVanController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        hintText: "Mô tả quá trình học",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ================= KỸ NĂNG =================
-                    sectionTitle("Kỹ năng"),
-
-                    ...skills.map(
-                      (e) => TextField(
-                        controller: _profileController.kyNangController,
-                        style: const TextStyle(color: Colors.white),
-                        cursorColor: Colors.white,
-                        decoration: const InputDecoration(
-                          hintText: "Tên kỹ năng",
-                          hintStyle: TextStyle(color: Colors.white70),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          skills.add(1);
-                        });
-                      },
-                      child: const Text(
-                        "+ Thêm",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ================= SỞ THÍCH =================
-                    sectionTitle("Sở thích"),
-
-                    ...hobbies.map(
-                      (e) => TextField(
-                        controller: _profileController.soThichController,
-                        style: const TextStyle(color: Colors.white),
-                        cursorColor: Colors.white,
-                        decoration: const InputDecoration(
-                          hintText: "Tên sở thích",
-                          hintStyle: TextStyle(color: Colors.white70),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          hobbies.add(1);
-                        });
-                      },
-                      child: const Text(
-                        "+ Thêm",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ================= NGƯỜI GIỚI THIỆU =================
-                    sectionTitle("Người giới thiệu"),
-
-                    TextField(
-                      controller: _profileController.nguoiGioiThieuController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: Colors.white,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        hintText: "Tên, chức vụ, liên hệ",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 🔥 RIGHT (ĐÃ SỬA)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      buildCareerGoal(),
-                      buildExperienceSection(),
-                      buildAwardSection(),
-                      buildCertificateSection(),
-                      buildActivitySection(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================= PRO (GIỮ NGUYÊN) =================
-  Widget buildProfessionalCV() {
-    return SingleChildScrollView(
-      child: Container(
-        margin: const EdgeInsets.all(10),
-        color: Colors.white,
-        child: Row(
-          children: [
-            Container(
-              width: 160,
-              color: const Color.fromARGB(255, 218, 129, 206),
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleAvatar(radius: 40, backgroundColor: Colors.grey),
-                  const SizedBox(height: 10),
-
-                  TextField(
-                    controller: _profileController.hoTenController,
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: Colors.white,
-                    decoration: const InputDecoration(
-                      hintText: "Họ tên",
-                      hintStyle: TextStyle(color: Colors.white),
-                      border: InputBorder.none,
-                    ),
-                  ),
-
-                  TextField(
-                    controller: _profileController.viTriUngTuyenController,
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: Colors.white,
-                    decoration: const InputDecoration(
-                      hintText: "Vị trí",
-                      hintStyle: TextStyle(color: Colors.white),
-                      border: InputBorder.none,
-                    ),
-                  ),
-
-                  const Divider(),
-
-                  infoInput(
-                    Icons.cake,
-                    "Ngày sinh",
-                    controller: _profileController.ngaySinhController,
-                    isDate: true,
-                  ),
-                  infoInput(
-                    Icons.phone,
-                    "SĐT",
-                    controller: _profileController.soDienThoaiController,
-                  ),
-                  infoInput(
-                    Icons.email,
-                    "Email",
-                    controller: _profileController.emailController,
-                  ),
-                  infoInput(
-                    Icons.location_on,
-                    "Địa chỉ",
-                    controller: _profileController.diaChiController,
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  sectionTitle("Học vấn"),
-                  TextField(
-                    controller: _profileController.nganhHocController,
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: Colors.white,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      hintText: "Nhập học vấn",
-                      hintStyle: TextStyle(color: Colors.white),
-                      border: InputBorder.none,
-                    ),
-                  ),
-
-                  sectionTitle("Kỹ năng"),
-                  TextField(
-                    controller: _profileController.kyNangController,
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: Colors.white,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      hintText: "Nhập kỹ năng",
-                      hintStyle: TextStyle(color: Colors.white),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    rightSection("Mục tiêu nghề nghiệp"),
-                    rightSection("Kinh nghiệm làm việc"),
-                    rightSection("Danh hiệu và giải thưởng"),
-                    rightSection("Chứng chỉ"),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= COMPONENT =================
-
-  Widget brownTitle(String text) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF5D4037),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget buildCareerGoal() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        brownTitle("Mục tiêu nghề nghiệp"),
-        TextField(
-          controller: _profileController.mucTieuController,
-          maxLines: 3,
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget buildExperienceSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        brownTitle("Kinh nghiệm làm việc"),
-        ...experiences.map((e) => experienceItem()),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              experiences.add(1);
-            });
-          },
-          child: const Text("+ Thêm"),
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget experienceItem() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _profileController.kinhNghiemViTriController,
-                decoration: const InputDecoration(hintText: "Vị trí"),
-              ),
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 70,
-              child: TextField(
-                controller: _profileController.kinhNghiemTuController,
-                decoration: const InputDecoration(hintText: "Từ"),
-              ),
-            ),
-            const SizedBox(width: 5),
-            SizedBox(
-              width: 70,
-              child: TextField(
-                controller: _profileController.kinhNghiemDenController,
-                decoration: const InputDecoration(hintText: "Đến"),
-              ),
-            ),
-          ],
-        ),
-        TextField(
-          controller: _profileController.kinhNghiemCongTyController,
-          decoration: const InputDecoration(hintText: "Tên công ty"),
-        ),
-        TextField(
-          controller: _profileController.kinhNghiemMoTaController,
-          maxLines: 2,
-          decoration: const InputDecoration(hintText: "Mô tả"),
-        ),
-      ],
-    );
-  }
-
-  Widget buildAwardSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        brownTitle("Danh hiệu"),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _profileController.danhHieuThoiGianController,
-                decoration: const InputDecoration(hintText: "Thời gian"),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _profileController.danhHieuTenController,
-                decoration: const InputDecoration(hintText: "Tên"),
-              ),
-            ),
-          ],
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              certificates.add(1);
-            });
-          },
-          child: const Text("+ Thêm"),
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget buildCertificateSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        brownTitle("Chứng chỉ"),
-        ...certificates.map(
-          (e) => Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _profileController.chungChiThoiGianController,
-                  decoration: const InputDecoration(hintText: "Thời gian"),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _profileController.chungChiTenController,
-                  decoration: const InputDecoration(hintText: "Tên"),
-                ),
-              ),
-            ],
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              certificates.add(1);
-            });
-          },
-          child: const Text("+ Thêm"),
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget buildActivitySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        brownTitle("Hoạt động"),
-        ...activities.map(
-          (e) => Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _profileController.hoatDongViTriController,
-                      decoration: const InputDecoration(hintText: "Vị trí"),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 70,
-                    child: TextField(
-                      controller: _profileController.hoatDongTuController,
-                      decoration: const InputDecoration(hintText: "Từ"),
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  SizedBox(
-                    width: 70,
-                    child: TextField(
-                      controller: _profileController.hoatDongDenController,
-                      decoration: const InputDecoration(hintText: "Đến"),
-                    ),
-                  ),
-                ],
-              ),
-              TextField(
-                controller: _profileController.hoatDongToChucController,
-                decoration: const InputDecoration(hintText: "Tổ chức"),
-              ),
-              TextField(
-                controller: _profileController.hoatDongMoTaController,
-                decoration: const InputDecoration(hintText: "Mô tả"),
-              ),
-            ],
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              activities.add(1);
-            });
-          },
-          child: const Text("+ Thêm"),
-        ),
-        const Divider(),
-      ],
-    );
-  }
-
-  Widget infoInput(
-    IconData icon,
-    String hint, {
-    TextEditingController? controller,
-    bool isDate = false,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white, size: 16),
-        const SizedBox(width: 5),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            readOnly: isDate,
-            onTap: isDate
-                ? () => _profileController.pickNgaySinh(context)
-                : null,
-            style: const TextStyle(color: Colors.white),
-            cursorColor: Colors.white,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: Colors.white70),
-              border: InputBorder.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget rightSection(String title) {
-    TextEditingController? controller;
-
-    if (title == "Mục tiêu nghề nghiệp") {
-      controller = _profileController.mucTieuController;
-    } else if (title == "Kinh nghiệm làm việc") {
-      controller = _profileController.kinhNghiemMoTaController;
-    } else if (title == "Danh hiệu và giải thưởng") {
-      controller = _profileController.danhHieuTenController;
-    } else if (title == "Chứng chỉ") {
-      controller = _profileController.chungChiTenController;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title),
-          const Divider(),
-          TextField(controller: controller),
-        ],
       ),
     );
   }

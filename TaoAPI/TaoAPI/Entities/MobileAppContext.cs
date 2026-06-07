@@ -21,7 +21,14 @@ public partial class MobileAppContext : DbContext
     public virtual DbSet<UngVien> UngViens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Data Source=DESKTOP-RHOOB01\\SQLEXPRESS03;Initial Catalog=mobile_app;Integrated Security=True;TrustServerCertificate=True");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlServer(
+                "Data Source=DESKTOP-RHOOB01\\SQLEXPRESS03;Initial Catalog=mobile_app;Integrated Security=True;TrustServerCertificate=True"
+            );
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,10 +38,16 @@ public partial class MobileAppContext : DbContext
 
             entity.ToTable("HoSoCV");
 
-            entity.Property(e => e.IdCv).HasColumnName("id_cv");
+            entity.Property(e => e.IdCv)
+                .HasColumnName("id_cv");
 
             entity.Property(e => e.IdUngvien)
                 .HasColumnName("id_ungvien");
+
+            entity.Property(e => e.LoaiMauCv)
+                .HasMaxLength(50)
+                .HasDefaultValue("simple")
+                .HasColumnName("loai_mau_cv");
 
             entity.Property(e => e.TieuDeCv)
                 .HasMaxLength(150)
@@ -77,10 +90,18 @@ public partial class MobileAppContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("trang_thai_tim_viec");
 
+            entity.Property(e => e.TrangThai)
+                .HasDefaultValue(true)
+                .HasColumnName("trang_thai");
+
             entity.Property(e => e.NgayTao)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("ngay_tao");
+
+            entity.Property(e => e.NgayCapNhat)
+                .HasColumnType("datetime")
+                .HasColumnName("ngay_cap_nhat");
 
             entity.HasOne(d => d.IdUngvienNavigation)
                 .WithMany(p => p.HoSoCvs)

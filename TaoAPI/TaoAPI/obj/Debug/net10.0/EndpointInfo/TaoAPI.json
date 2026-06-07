@@ -1,0 +1,408 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "TaoAPI | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5249"
+    }
+  ],
+  "paths": {
+    "/api/TaiKhoan": {
+      "get": {
+        "tags": [
+          "TaiKhoan"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaiKhoan"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaiKhoan"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaiKhoan"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TaiKhoan"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TaiKhoan/login": {
+      "post": {
+        "tags": [
+          "TaiKhoan"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaiKhoan"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaiKhoan"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaiKhoan"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TaiKhoan/{id}": {
+      "get": {
+        "tags": [
+          "TaiKhoan"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/WeatherForecast": {
+      "get": {
+        "tags": [
+          "WeatherForecast"
+        ],
+        "operationId": "GetWeatherForecast",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HoSoCv": {
+        "type": "object",
+        "properties": {
+          "idCv": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "idUngvien": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tieuDeCv": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kinhNghiem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hocVan": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kyNang": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chungChi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trangThaiTimViec": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "idUngvienNavigation": {
+            "$ref": "#/components/schemas/UngVien"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "matKhau": {
+            "type": "string"
+          },
+          "hoTen": {
+            "type": "string"
+          },
+          "soDienThoai": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TaiKhoan": {
+        "type": "object",
+        "properties": {
+          "idTaikhoan": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "email": {
+            "type": "string"
+          },
+          "matKhau": {
+            "type": "string"
+          },
+          "soDienThoai": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vaiTro": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ngayTao": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ungViens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UngVien"
+            }
+          }
+        }
+      },
+      "UngVien": {
+        "type": "object",
+        "properties": {
+          "idUngvien": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "idTaikhoan": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hoTen": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "anhDaiDien": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ngaySinh": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gioiTinh": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "diaChi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoSoCvs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HoSoCv"
+            }
+          },
+          "idTaikhoanNavigation": {
+            "$ref": "#/components/schemas/TaiKhoan"
+          }
+        }
+      },
+      "WeatherForecast": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "temperatureC": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "temperatureF": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "TaiKhoan"
+    },
+    {
+      "name": "WeatherForecast"
+    }
+  ]
+}

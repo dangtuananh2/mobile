@@ -1,4 +1,6 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:do_an_mobile/UngVien/controllers/ung_vien_profile_controller.dart';
 import 'package:do_an_mobile/UngVien/models/ung_vien_profile_model.dart';
@@ -21,7 +23,8 @@ class TaiKhoan extends StatefulWidget {
 }
 
 class _TaiKhoanState extends State<TaiKhoan> {
-  final UngVienProfileController _profileController = UngVienProfileController();
+  final UngVienProfileController _profileController =
+      UngVienProfileController();
 
   bool timViec = true;
   bool choPhepNTD = true;
@@ -36,7 +39,9 @@ class _TaiKhoanState extends State<TaiKhoan> {
   String userBirthDate = "";
 
   String avatarPath = "";
-  File? selectedAvatar;
+  String avatarBase64 = "";
+  Uint8List? selectedAvatarBytes;
+
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nameController = TextEditingController();
@@ -65,6 +70,22 @@ class _TaiKhoanState extends State<TaiKhoan> {
     super.dispose();
   }
 
+  void _setAvatarFromStoredValue(String value) {
+    avatarPath = value;
+    avatarBase64 = value;
+
+    if (value.trim().isEmpty) {
+      selectedAvatarBytes = null;
+      return;
+    }
+
+    try {
+      selectedAvatarBytes = base64Decode(value);
+    } catch (_) {
+      selectedAvatarBytes = null;
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
       final UngVienProfileModel localProfile =
@@ -75,10 +96,7 @@ class _TaiKhoanState extends State<TaiKhoan> {
           userName = localProfile.userName;
           userEmail = localProfile.userEmail;
           userCode = localProfile.userCode;
-          avatarPath = localProfile.avatarPath;
-          selectedAvatar = localProfile.avatarPath.isNotEmpty
-              ? File(localProfile.avatarPath)
-              : null;
+          _setAvatarFromStoredValue(localProfile.avatarPath);
           _isLoading = false;
         });
       }
@@ -92,9 +110,14 @@ class _TaiKhoanState extends State<TaiKhoan> {
         userName = remoteProfile.userName;
         userEmail = remoteProfile.userEmail;
         userCode = remoteProfile.userCode;
+
+        if (remoteProfile.avatarPath.trim().isNotEmpty) {
+          _setAvatarFromStoredValue(remoteProfile.avatarPath);
+        }
       });
     } catch (e) {
       debugPrint("Lỗi tải tài khoản: $e");
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -104,25 +127,39 @@ class _TaiKhoanState extends State<TaiKhoan> {
   }
 
   Future<void> _pickAvatar() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 75,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 75,
+      );
 
-    if (image == null) return;
+      if (image == null) return;
 
-    await _profileController.saveAvatarPath(image.path);
+      final Uint8List bytes = await image.readAsBytes();
+      final String base64Image = base64Encode(bytes);
 
-    if (!mounted) return;
+      await _profileController.saveAvatarPath(base64Image);
 
-    setState(() {
-      avatarPath = image.path;
-      selectedAvatar = File(image.path);
-    });
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Đã cập nhật ảnh đại diện")));
+      setState(() {
+        avatarBase64 = base64Image;
+        avatarPath = base64Image;
+        selectedAvatarBytes = bytes;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Đã cập nhật ảnh đại diện")),
+      );
+    } catch (e) {
+      debugPrint("Lỗi chọn ảnh: $e");
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi chọn ảnh: $e")),
+      );
+    }
   }
 
   void _goTo(Widget page, {bool replace = false}) {
@@ -356,9 +393,9 @@ class _TaiKhoanState extends State<TaiKhoan> {
     final int userId = localProfile.userId;
 
     if (userId == 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Không tìm thấy tài khoản")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Không tìm thấy tài khoản")),
+      );
       return;
     }
 
@@ -370,7 +407,7 @@ class _TaiKhoanState extends State<TaiKhoan> {
         gioiTinh: _genderController.text.trim(),
         ngaySinh: _birthDateController.text.trim(),
         diaChi: _addressController.text.trim(),
-        anhDaiDien: avatarPath,
+        anhDaiDien: avatarBase64,
       );
 
       if (!mounted) return;
@@ -419,6 +456,14 @@ class _TaiKhoanState extends State<TaiKhoan> {
     );
   }
 
+  ImageProvider? _avatarImageProvider() {
+    if (selectedAvatarBytes == null) {
+      return null;
+    }
+
+    return MemoryImage(selectedAvatarBytes!);
+  }
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 54, 18, 24),
@@ -464,10 +509,8 @@ class _TaiKhoanState extends State<TaiKhoan> {
                       CircleAvatar(
                         radius: 38,
                         backgroundColor: primaryGreen.withOpacity(0.12),
-                        backgroundImage: selectedAvatar != null
-                            ? FileImage(selectedAvatar!)
-                            : null,
-                        child: selectedAvatar == null
+                        backgroundImage: _avatarImageProvider(),
+                        child: selectedAvatarBytes == null
                             ? const Icon(
                                 Icons.person_rounded,
                                 color: primaryGreen,

@@ -4,9 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:do_an_mobile/UngVien/controllers/cv_controller.dart';
 import 'package:do_an_mobile/UngVien/models/ho_so_cv_model.dart';
 import 'package:do_an_mobile/UngVien/utils/cv_pdf_helper.dart';
+import 'package:do_an_mobile/UngVien/views/trangchu.dart';
+import 'package:do_an_mobile/UngVien/views/taomau.dart';
 
 class LuuCvPage extends StatefulWidget {
-  const LuuCvPage({super.key});
+  final bool showDownloadButton;
+  final bool showEditButton;
+
+  final String? idCv;
+  final String type;
+
+  const LuuCvPage({
+    super.key,
+    this.showDownloadButton = true,
+    this.showEditButton = true,
+    this.idCv,
+    this.type = "simple",
+  });
 
   @override
   State<LuuCvPage> createState() => _LuuCvPageState();
@@ -37,7 +51,12 @@ class _LuuCvPageState extends State<LuuCvPage> {
   @override
   void initState() {
     super.initState();
-    fetchCvFromDatabase();
+
+    if (widget.idCv != null && widget.idCv!.trim().isNotEmpty) {
+      fetchCvById(widget.idCv!);
+    } else {
+      fetchCvFromDatabase();
+    }
   }
 
   String getValue(List<String> keys, {String defaultValue = ""}) {
@@ -49,9 +68,11 @@ class _LuuCvPageState extends State<LuuCvPage> {
 
     try {
       final decoded = jsonDecode(value);
+
       if (decoded is Map<String, dynamic>) {
         return decoded;
       }
+
       return {};
     } catch (_) {
       return {};
@@ -79,9 +100,11 @@ class _LuuCvPageState extends State<LuuCvPage> {
         'AAAAAAAAAAAAAAAAAEEEEEEEEEEEIIIIIOOOOOOOOOOOOOOOOOUUUUUUUUUUUYYYYYD';
 
     String result = text;
+
     for (int i = 0; i < vietnamese.length; i++) {
       result = result.replaceAll(vietnamese[i], latin[i]);
     }
+
     return result;
   }
 
@@ -93,24 +116,55 @@ class _LuuCvPageState extends State<LuuCvPage> {
     try {
       final latestCv = await _cvController.getLatestCv();
 
-      if (mounted) {
-        setState(() {
-          cvData = latestCv;
-          allowSearch = latestCv.getValue(
-                ["trangThaiTimViec", "trang_thai_tim_viec"],
-                defaultValue: "true",
-              )
-              .toLowerCase() !=
-              "false";
-          isLoadingCv = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        cvData = latestCv;
+        allowSearch = latestCv
+                .getValue(
+                  ["trangThaiTimViec", "trang_thai_tim_viec"],
+                  defaultValue: "true",
+                )
+                .toLowerCase() !=
+            "false";
+        isLoadingCv = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoadingCv = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingCv = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi lấy dữ liệu CV: $e")),
+      );
+    }
+  }
+
+  Future<void> fetchCvById(String idCv) async {
+    try {
+      final cv = await _cvController.getCvById(idCv);
+
+      if (!mounted) return;
+
+      setState(() {
+        cvData = cv;
+        allowSearch = cv
+                .getValue(
+                  ["trangThaiTimViec", "trang_thai_tim_viec"],
+                  defaultValue: "true",
+                )
+                .toLowerCase() !=
+            "false";
+        isLoadingCv = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingCv = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Lỗi lấy dữ liệu CV: $e")),
@@ -124,8 +178,16 @@ class _LuuCvPageState extends State<LuuCvPage> {
     });
 
     try {
-      final idCv = getValue(["idCv", "id_cv"]);
-      await _cvController.updateSearchStatus(idCv: idCv, value: value);
+      final idCv = widget.idCv ?? getValue(["idCv", "id_cv"]);
+
+      if (idCv.trim().isEmpty) {
+        throw Exception("Không tìm thấy id CV");
+      }
+
+      await _cvController.updateSearchStatus(
+        idCv: idCv,
+        value: value,
+      );
     } catch (_) {}
   }
 
@@ -140,17 +202,65 @@ class _LuuCvPageState extends State<LuuCvPage> {
     await CvPdfHelper.sharePdf(cvData!);
   }
 
+  void goToHome() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TrangChu(),
+      ),
+      (route) => false,
+    );
+  }
+
+  void goToEditCv() {
+    final currentIdCv = widget.idCv ?? getValue(["idCv", "id_cv"]);
+
+    final currentType = widget.type.trim().isNotEmpty
+        ? widget.type
+        : getValue(
+            ["loaiMauCv", "loai_mau_cv"],
+            defaultValue: "simple",
+          );
+
+    if (currentIdCv.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Không tìm thấy CV để chỉnh sửa"),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TaoMau(
+          type: currentType,
+          isEdit: true,
+          idCv: currentIdCv,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tieuDeCv = getValue(
       ["tieuDeCv", "tieu_de_cv"],
-      defaultValue: "CV_Tuấn Anh Đặng",
+      defaultValue: "CV của tôi",
     );
 
     final hoTen = getValue(
       ["hoTen", "ho_ten"],
-      defaultValue: "Tuấn Anh Đặng",
+      defaultValue: "Ứng viên",
     );
+
+    final currentType = widget.type.trim().isNotEmpty
+        ? widget.type
+        : getValue(
+            ["loaiMauCv", "loai_mau_cv"],
+            defaultValue: "simple",
+          );
 
     return Scaffold(
       backgroundColor: const Color(0xfff4f5f8),
@@ -163,7 +273,11 @@ class _LuuCvPageState extends State<LuuCvPage> {
           child: const Row(
             children: [
               SizedBox(width: 16),
-              Icon(Icons.close, color: Color(0xff243447), size: 30),
+              Icon(
+                Icons.close,
+                color: Color(0xff243447),
+                size: 30,
+              ),
               SizedBox(width: 8),
               Text(
                 "Đóng",
@@ -200,7 +314,9 @@ class _LuuCvPageState extends State<LuuCvPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const SizedBox(height: 14),
+
                         const Text(
                           "Hồ sơ của bạn đã được cập nhật.\nBạn có thể dùng CV này để ứng tuyển ngay.",
                           textAlign: TextAlign.center,
@@ -210,116 +326,13 @@ class _LuuCvPageState extends State<LuuCvPage> {
                             height: 1.25,
                           ),
                         ),
+
                         const SizedBox(height: 36),
 
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 86,
-                                height: 130,
-                                color: const Color(0xff4a2f33),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 10),
-                                    CircleAvatar(
-                                      radius: 28,
-                                      backgroundColor: Colors.grey.shade300,
-                                      child: const Icon(
-                                        Icons.person,
-                                        size: 40,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      hoTen,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 7,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 22),
-
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      tieuDeCv,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Color(0xff243447),
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 70),
-
-                                    Row(
-                                      children: [
-                                        OutlinedButton.icon(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          icon: const Icon(Icons.edit),
-                                          label: const Text("Sửa lại"),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor:
-                                                const Color(0xff00b14f),
-                                            side: const BorderSide(
-                                              color: Color(0xff00b14f),
-                                              width: 1.5,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 18,
-                                              vertical: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-
-                                        OutlinedButton(
-                                          onPressed: downloadCvPdf,
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor:
-                                                const Color(0xff00b14f),
-                                            side: const BorderSide(
-                                              color: Color(0xff00b14f),
-                                              width: 1.5,
-                                            ),
-                                            shape: const CircleBorder(),
-                                            padding: const EdgeInsets.all(14),
-                                          ),
-                                          child: const Icon(Icons.download),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                        _buildCvCard(
+                          tieuDeCv: tieuDeCv,
+                          hoTen: hoTen,
+                          type: currentType,
                         ),
                       ],
                     ),
@@ -327,92 +340,361 @@ class _LuuCvPageState extends State<LuuCvPage> {
 
                   const SizedBox(height: 10),
 
-                  Container(
-                    width: double.infinity,
-                    color: Colors.white,
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                "Cho phép NTD tìm kiếm hồ sơ",
-                                style: TextStyle(
-                                  color: Color(0xff243447),
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Switch(
-                              value: allowSearch,
-                              activeColor: const Color(0xff00b14f),
-                              onChanged: updateSearchStatus,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "Bật Cho phép ngay để không bỏ lỡ những cơ hội\nnghề nghiệp đầy tiềm năng.",
-                          style: TextStyle(
-                            color: Color(0xff243447),
-                            fontSize: 20,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 22),
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.help_outline,
-                              color: Color(0xff00b14f),
-                              size: 24,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              "Tìm hiểu thêm",
-                              style: TextStyle(
-                                color: Color(0xff00b14f),
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildSearchPermissionSection(),
 
                   const SizedBox(height: 10),
 
-                  Container(
-                    width: double.infinity,
-                    color: Colors.white,
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Việc làm phù hợp với CV của bạn",
-                          style: TextStyle(
-                            color: Color(0xff243447),
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        ...suggestedJobs.map((job) {
-                          return _buildJobCard(job);
-                        }),
-                      ],
-                    ),
-                  ),
+                  _buildSuggestedJobsSection(),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildCvCard({
+    required String tieuDeCv,
+    required String hoTen,
+    required String type,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildCvThumbnail(
+            hoTen: hoTen,
+            type: type,
+          ),
+
+          const SizedBox(width: 22),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tieuDeCv,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xff243447),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: type == "pro"
+                        ? Colors.pink.shade50
+                        : Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: type == "pro"
+                          ? Colors.pink.shade200
+                          : Colors.green.shade200,
+                    ),
+                  ),
+                  child: Text(
+                    type == "pro" ? "Mẫu Pro" : "Mẫu Simple",
+                    style: TextStyle(
+                      color: type == "pro"
+                          ? Colors.pink.shade700
+                          : Colors.green.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 52),
+
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCvThumbnail({
+    required String hoTen,
+    required String type,
+  }) {
+    if (type == "pro") {
+      return Container(
+        width: 86,
+        height: 130,
+        color: const Color(0xfff5dce5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.person,
+                size: 40,
+                color: Colors.pink.shade200,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              hoTen,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xff5d4037),
+                fontSize: 7,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 60,
+              height: 4,
+              color: Colors.pink.shade100,
+            ),
+            const SizedBox(height: 5),
+            Container(
+              width: 50,
+              height: 4,
+              color: Colors.pink.shade100,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: 86,
+      height: 130,
+      color: const Color(0xff4a2f33),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(height: 10),
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.grey.shade300,
+            child: const Icon(
+              Icons.person,
+              size: 40,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hoTen,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 7,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 60,
+            height: 4,
+            color: Colors.white.withOpacity(0.35),
+          ),
+          const SizedBox(height: 5),
+          Container(
+            width: 50,
+            height: 4,
+            color: Colors.white.withOpacity(0.35),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 10,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (widget.showEditButton)
+          OutlinedButton.icon(
+            onPressed: goToEditCv,
+            icon: const Icon(
+              Icons.edit,
+              color: Color(0xff00b14f),
+            ),
+            label: const Text(
+              'Sửa lại',
+              style: TextStyle(
+                color: Color(0xff00b14f),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(
+                color: Color(0xff00b14f),
+                width: 1.4,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 10,
+              ),
+            ),
+          ),
+
+        OutlinedButton.icon(
+          onPressed: goToHome,
+          icon: const Icon(
+            Icons.home,
+            color: Color(0xff00b14f),
+          ),
+          label: const Text(
+            'Home',
+            style: TextStyle(
+              color: Color(0xff00b14f),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(
+              color: Color(0xff00b14f),
+              width: 1.4,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 10,
+            ),
+          ),
+        ),
+
+        if (widget.showDownloadButton)
+          OutlinedButton(
+            onPressed: downloadCvPdf,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xff00b14f),
+              side: const BorderSide(
+                color: Color(0xff00b14f),
+                width: 1.5,
+              ),
+              shape: const CircleBorder(),
+              padding: const EdgeInsets.all(14),
+            ),
+            child: const Icon(Icons.download),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSearchPermissionSection() {
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "Cho phép NTD tìm kiếm hồ sơ",
+                  style: TextStyle(
+                    color: Color(0xff243447),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              Switch(
+                value: allowSearch,
+                activeColor: const Color(0xff00b14f),
+                onChanged: updateSearchStatus,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          const Text(
+            "Bật Cho phép ngay để không bỏ lỡ những cơ hội\nnghề nghiệp đầy tiềm năng.",
+            style: TextStyle(
+              color: Color(0xff243447),
+              fontSize: 20,
+              height: 1.4,
+            ),
+          ),
+
+          const SizedBox(height: 22),
+
+          const Row(
+            children: [
+              Icon(
+                Icons.help_outline,
+                color: Color(0xff00b14f),
+                size: 24,
+              ),
+              SizedBox(width: 8),
+              Text(
+                "Tìm hiểu thêm",
+                style: TextStyle(
+                  color: Color(0xff00b14f),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestedJobsSection() {
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Việc làm phù hợp với CV của bạn",
+            style: TextStyle(
+              color: Color(0xff243447),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          ...suggestedJobs.map((job) {
+            return _buildJobCard(job);
+          }),
+        ],
+      ),
     );
   }
 
@@ -447,6 +729,7 @@ class _LuuCvPageState extends State<LuuCvPage> {
               ),
             ),
           ),
+
           const SizedBox(width: 16),
 
           Expanded(
@@ -464,7 +747,9 @@ class _LuuCvPageState extends State<LuuCvPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 12),
+
                 Text(
                   job["company"]!,
                   maxLines: 1,
@@ -475,6 +760,7 @@ class _LuuCvPageState extends State<LuuCvPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+
                 const SizedBox(height: 14),
 
                 Row(
@@ -509,6 +795,7 @@ class _LuuCvPageState extends State<LuuCvPage> {
                         ],
                       ),
                     ),
+
                     const SizedBox(width: 8),
 
                     Expanded(
@@ -539,6 +826,7 @@ class _LuuCvPageState extends State<LuuCvPage> {
           ),
 
           const SizedBox(width: 8),
+
           Container(
             width: 42,
             height: 42,

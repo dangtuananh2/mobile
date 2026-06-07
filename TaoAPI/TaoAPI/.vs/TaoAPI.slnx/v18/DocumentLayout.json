@@ -1,0 +1,103 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|c:\\users\\minh ph\u00FAc\\downloads\\taoapi\\taoapi\\controllers\\ungviencontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|solutionrelative:taoapi\\controllers\\ungviencontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|c:\\users\\minh ph\u00FAc\\downloads\\taoapi\\taoapi\\controllers\\taikhoancontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|solutionrelative:taoapi\\controllers\\taikhoancontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|c:\\users\\minh ph\u00FAc\\downloads\\taoapi\\taoapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|solutionrelative:taoapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|c:\\users\\minh ph\u00FAc\\downloads\\taoapi\\taoapi\\models\\mobileappcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C7D8F826-C0AB-D079-6EBE-9FA9DC925AAD}|TaoAPI\\TaoAPI.csproj|solutionrelative:taoapi\\models\\mobileappcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Minh Ph\u00FAc\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\build\\Container.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UngVienController.cs",
+              "DocumentMoniker": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Controllers\\UngVienController.cs",
+              "RelativeDocumentMoniker": "TaoAPI\\Controllers\\UngVienController.cs",
+              "ToolTip": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Controllers\\UngVienController.cs",
+              "RelativeToolTip": "TaoAPI\\Controllers\\UngVienController.cs",
+              "ViewState": "AgIAADAAAAAAAAAAAAAqwEgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-17T12:00:05.052Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MobileAppContext.cs",
+              "DocumentMoniker": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Models\\MobileAppContext.cs",
+              "RelativeDocumentMoniker": "TaoAPI\\Models\\MobileAppContext.cs",
+              "ToolTip": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Models\\MobileAppContext.cs",
+              "RelativeToolTip": "TaoAPI\\Models\\MobileAppContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-16T08:38:47.746Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Container.targets",
+              "DocumentMoniker": "C:\\Users\\Minh Ph\u00FAc\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\build\\Container.targets",
+              "RelativeDocumentMoniker": "..\\..\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\build\\Container.targets",
+              "ToolTip": "C:\\Users\\Minh Ph\u00FAc\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\build\\Container.targets",
+              "RelativeToolTip": "..\\..\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\build\\Container.targets",
+              "ViewState": "AgIAALwAAAAAAAAAAAAIwOQAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2026-05-13T08:07:18.02Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TaiKhoanController.cs",
+              "DocumentMoniker": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Controllers\\TaiKhoanController.cs",
+              "RelativeDocumentMoniker": "TaoAPI\\Controllers\\TaiKhoanController.cs",
+              "ToolTip": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Controllers\\TaiKhoanController.cs",
+              "RelativeToolTip": "TaoAPI\\Controllers\\TaiKhoanController.cs",
+              "ViewState": "AgIAAGUAAAAAAAAAAAAvwHoAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-13T08:04:25.355Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Program.cs",
+              "RelativeDocumentMoniker": "TaoAPI\\Program.cs",
+              "ToolTip": "C:\\Users\\Minh Ph\u00FAc\\Downloads\\TaoAPI\\TaoAPI\\Program.cs",
+              "RelativeToolTip": "TaoAPI\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAA6AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-13T08:01:28.095Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
