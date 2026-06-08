@@ -27,6 +27,7 @@ namespace TaoAPI.Controllers
             public string? Email { get; set; }
             public string? MatKhau { get; set; }
             public string? HoTen { get; set; }
+            public string? TenCongTy { get; set; }
             public string? SoDienThoai { get; set; }
             public string? VaiTro { get; set; }
         }
@@ -68,6 +69,7 @@ namespace TaoAPI.Controllers
             var password = request.MatKhau?.Trim() ?? string.Empty;
             var phone = request.SoDienThoai?.Trim();
             var hoTen = request.HoTen?.Trim();
+            var tenCongTy = request.TenCongTy?.Trim();
 
             if (!IsValidEmail(email))
                 return BadRequest("Email không hợp lệ");
@@ -76,18 +78,23 @@ namespace TaoAPI.Controllers
             if (passwordError != null)
                 return BadRequest(passwordError);
 
-            if (string.IsNullOrWhiteSpace(hoTen))
+            var vaiTro = request.VaiTro == "nha_tuyen_dung"
+                ? "nha_tuyen_dung"
+                : request.VaiTro == "admin"
+                    ? "admin"
+                    : "ung_vien";
+
+            if (vaiTro == "ung_vien" && string.IsNullOrWhiteSpace(hoTen))
                 return BadRequest("Vui lòng nhập họ tên");
+
+            if (vaiTro == "nha_tuyen_dung" && string.IsNullOrWhiteSpace(tenCongTy))
+                return BadRequest("Vui lòng nhập tên công ty");
 
             var existed = await _context.TaiKhoans
                 .AnyAsync(x => x.Email.ToLower() == email);
 
             if (existed)
                 return BadRequest("Email đã tồn tại");
-
-            var vaiTro = request.VaiTro == "admin"
-                ? "admin"
-                : "ung_vien";
 
             var taiKhoan = new TaiKhoan
             {
@@ -111,8 +118,19 @@ namespace TaoAPI.Controllers
                 };
 
                 _context.UngViens.Add(ungVien);
-                await _context.SaveChangesAsync();
             }
+            else if (vaiTro == "nha_tuyen_dung")
+            {
+                var nhaTuyenDung = new NhaTuyenDung
+                {
+                    IdTaikhoan = taiKhoan.IdTaikhoan,
+                    TenCongTy = tenCongTy!
+                };
+
+                _context.NhaTuyenDungs.Add(nhaTuyenDung);
+            }
+
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
@@ -146,12 +164,18 @@ namespace TaoAPI.Controllers
                 .Select(u => u.HoTen)
                 .FirstOrDefaultAsync();
 
+            var tenCongTy = await _context.NhaTuyenDungs
+                .Where(n => n.IdTaikhoan == user.IdTaikhoan)
+                .Select(n => n.TenCongTy)
+                .FirstOrDefaultAsync();
+
             return Ok(new
             {
                 idTaikhoan = user.IdTaikhoan,
                 email = user.Email,
                 vaiTro = user.VaiTro,
-                hoTen = hoTen ?? "Người dùng"
+                hoTen = hoTen,
+                tenCongTy = tenCongTy
             });
         }
 
@@ -246,6 +270,10 @@ namespace TaoAPI.Controllers
                     hoTen = _context.UngViens
                         .Where(u => u.IdTaikhoan == t.IdTaikhoan)
                         .Select(u => u.HoTen)
+                        .FirstOrDefault(),
+                    tenCongTy = _context.NhaTuyenDungs
+                        .Where(n => n.IdTaikhoan == t.IdTaikhoan)
+                        .Select(n => n.TenCongTy)
                         .FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
@@ -294,32 +322,32 @@ namespace TaoAPI.Controllers
             var senderPassword = _configuration["EmailSettings:SenderPassword"];
             var senderName = _configuration["EmailSettings:SenderName"] ?? "JobGo";
 
-            if (string.IsNullOrWhiteSpace(host) ||
-                string.IsNullOrWhiteSpace(portText) ||
-                string.IsNullOrWhiteSpace(senderEmail) ||
-                string.IsNullOrWhiteSpace(senderPassword))
+            try
             {
-                Console.WriteLine($"OTP đổi mật khẩu cho {toEmail}: {code}");
-                return;
+                using var client = new SmtpClient(host, int.Parse(portText ?? "587"))
+                {
+                    EnableSsl = true,
+                    Credentials = new NetworkCredential(senderEmail, senderPassword)
+                };
+
+                using var mail = new MailMessage
+                {
+                    From = new MailAddress(senderEmail!, senderName),
+                    Subject = "Mã xác nhận đổi mật khẩu JobGo",
+                    Body = $"Mã xác nhận đổi mật khẩu của bạn là: {code}. Mã có hiệu lực trong 10 phút.",
+                    IsBodyHtml = false
+                };
+
+                mail.To.Add(toEmail);
+
+                await client.SendMailAsync(mail);
             }
-
-            using var client = new SmtpClient(host, int.Parse(portText))
+            catch (Exception ex)
             {
-                EnableSsl = true,
-                Credentials = new NetworkCredential(senderEmail, senderPassword)
-            };
-
-            using var mail = new MailMessage
-            {
-                From = new MailAddress(senderEmail, senderName),
-                Subject = "Mã xác nhận đổi mật khẩu JobGo",
-                Body = $"Mã xác nhận đổi mật khẩu của bạn là: {code}. Mã có hiệu lực trong 10 phút.",
-                IsBodyHtml = false
-            };
-
-            mail.To.Add(toEmail);
-
-            await client.SendMailAsync(mail);
+                Console.WriteLine("Không gửi được email thật.");
+                Console.WriteLine($"Lỗi SMTP: {ex.Message}");
+                Console.WriteLine($"OTP đổi mật khẩu cho {toEmail}: {code}");
+            }
         }
     }
 }
