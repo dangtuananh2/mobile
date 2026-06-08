@@ -256,9 +256,105 @@ INSERT INTO TaiKhoan (
 )
 VALUES (
     'admin@gmail.com',
-    '123456',
+    '12345678',
     '0123456789',
     'admin',
     1
 );
+GO
+
+INSERT INTO TaiKhoan (email, mat_khau, so_dien_thoai, vai_tro)
+VALUES
+('user1@gmail.com','12345678','0900000001','ung_vien'),
+('user2@gmail.com','12345678','0900000002','ung_vien'),
+('user3@gmail.com','12345678','0900000003','ung_vien'),
+('user4@gmail.com','12345678','0900000004','ung_vien'),
+('user5@gmail.com','12345678','0900000005','ung_vien'),
+
+('ntd1@gmail.com','12345678','0910000001','nha_tuyen_dung'),
+('ntd2@gmail.com','12345678','0910000002','nha_tuyen_dung'),
+('ntd3@gmail.com','12345678','0910000003','nha_tuyen_dung'),
+('ntd4@gmail.com','12345678','0910000004','nha_tuyen_dung'),
+('ntd5@gmail.com','12345678','0910000005','nha_tuyen_dung');
+GO
+
+INSERT INTO UngVien (
+    id_taikhoan, ho_ten, ngay_sinh, gioi_tinh, dia_chi, vi_tri_ung_tuyen
+)
+VALUES
+(2,N'Nguyễn Văn A','2000-01-01',N'Nam',N'HCM',N'Frontend Dev'),
+(3,N'Trần Thị B','2001-02-02',N'Nữ',N'HCM',N'Backend Dev'),
+(4,N'Lê Văn C','1999-03-03',N'Nam',N'Hà Nội',N'Fullstack Dev'),
+(5,N'Phạm Thị D','2002-04-04',N'Nữ',N'Đà Nẵng',N'Designer'),
+(6,N'Hoàng Văn E','2000-05-05',N'Nam',N'Cần Thơ',N'Tester');
+GO
+
+INSERT INTO NhaTuyenDung (
+    id_taikhoan, ten_cong_ty, dia_chi, linh_vuc
+)
+VALUES
+(7,N'FPT Software',N'HCM',N'IT'),
+(8,N'VNG Corp',N'HCM',N'Game'),
+(9,N'Tiki',N'HCM',N'Ecommerce'),
+(10,N'Shopee',N'HCM',N'Ecommerce'),
+(11,N'VNPay',N'Hà Nội',N'Fintech');
+GO
+
+INSERT INTO HoSoCV (
+    id_ungvien, tieu_de_cv, muc_tieu, kinh_nghiem, ky_nang
+)
+VALUES
+(1,N'CV Frontend',N'Tìm việc FE',N'1 năm React',N'HTML,CSS,JS'),
+(2,N'CV Backend',N'Tìm việc BE',N'2 năm Java',N'Spring,SQL'),
+(3,N'CV Fullstack',N'Tìm việc FS',N'3 năm',N'MERN'),
+(4,N'CV Designer',N'Thiết kế UI',N'2 năm',N'Figma'),
+(5,N'CV Tester',N'Test phần mềm',N'1 năm',N'Selenium');
+GO
+
+INSERT INTO TinTuyenDung (
+    id_ntd, tieu_de, dia_diem, muc_luong, kinh_nghiem
+)
+VALUES
+(1,N'Tuyển FE Dev',N'HCM','10-15tr','1 năm'),
+(1,N'Tuyển React Dev',N'HCM','15-20tr','2 năm'),
+
+(2,N'Tuyển Java Dev',N'HCM','12-18tr','2 năm'),
+(2,N'Tuyển Backend',N'HCM','15-25tr','3 năm'),
+
+(3,N'Tuyển Fullstack',N'HCM','20-30tr','3 năm'),
+(3,N'Tuyển NodeJS',N'HCM','15-20tr','2 năm'),
+
+(4,N'Tuyển Designer',N'HCM','10-15tr','1 năm'),
+(4,N'Tuyển UI/UX',N'HCM','12-18tr','2 năm'),
+
+(5,N'Tuyển Tester',N'Hà Nội','8-12tr','1 năm'),
+(5,N'Tuyển QA',N'Hà Nội','10-15tr','2 năm');
+GO
+
+INSERT INTO UngTuyen (id_tin, id_cv)
+VALUES
+(1,1),
+(2,1),
+(3,2),
+(4,2),
+(5,3),
+(6,3),
+(7,4),
+(8,4),
+(9,5),
+(10,5);
+GO
+
+INSERT INTO LuuTin (id_ungvien, id_tin)
+VALUES
+(1,1),
+(1,2),
+(2,3),
+(2,4),
+(3,5),
+(3,6),
+(4,7),
+(4,8),
+(5,9),
+(5,10);
 GO

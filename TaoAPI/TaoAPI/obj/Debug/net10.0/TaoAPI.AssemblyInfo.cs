@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ccecff5bb0e61e276611958ea78c1ab51b398cdd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24f52858e0b9ea507a2578cd2739a5ff38354318")]
 [assembly: System.Reflection.AssemblyProductAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

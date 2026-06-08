@@ -1,9 +1,9 @@
+import 'package:do_an_mobile/Admin/views/admin_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:do_an_mobile/UngVien/views/quenmatkhau.dart';
 import 'package:do_an_mobile/UngVien/views/dangky.dart';
 import 'package:do_an_mobile/UngVien/views/trangchu.dart';
 import 'package:do_an_mobile/NTD/views/home_ntd_page.dart';
-import 'package:do_an_mobile/Admin/views/admin.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -134,7 +134,7 @@ class _DangNhapState extends State<DangNhap> {
         if (vaiTro == "admin") {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+            MaterialPageRoute(builder: (_) => const AdminLayout()),
           );
         } else if (vaiTro == "nha_tuyen_dung" || vaiTro == "ntd") {
           Navigator.pushReplacement(
