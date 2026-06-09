@@ -1,7 +1,8 @@
 // lib/NTD/views/kham_pha_cv_page.dart
 import 'package:flutter/material.dart';
 import '../services/ntd_cv_service.dart';
-import '../utils/cv_masking.dart';
+import '../services/invitation_service.dart';
+import 'ungvien_detail_page.dart';
 
 class KhamPhaCvPage extends StatefulWidget {
   const KhamPhaCvPage({super.key});
@@ -114,7 +115,8 @@ class _KhamPhaCvPageState extends State<KhamPhaCvPage> {
                               itemCount: _filtered.length,
                               itemBuilder: (_, i) => _CvFeedCard(
                                 cv: _filtered[i],
-                                onViewProfile: () => _showProfile(_filtered[i]),
+                                onViewProfile: () => _goToProfile(_filtered[i]),
+                                onSendInvitation: () => _sendInvitation(_filtered[i]),
                               ),
                             ),
                           ),
@@ -124,13 +126,86 @@ class _KhamPhaCvPageState extends State<KhamPhaCvPage> {
     );
   }
 
-  void _showProfile(Map<String, dynamic> cv) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ProfileSheet(cv: cv),
+  void _goToProfile(Map<String, dynamic> cv) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UngVienDetailPage(cv: cv),
+      ),
     );
+  }
+
+  Future<void> _sendInvitation(Map<String, dynamic> cv) async {
+    final hoTen = cv['hoTen']?.toString() ?? 'Ứng viên';
+    final viTri = cv['viTriUngTuyen']?.toString() ?? 'Chưa cập nhật';
+    final idCv = cv['idCv']?.toString() ?? cv['id_cv']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+    // Show dialog xác nhận
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(children: [
+          Icon(Icons.send, color: Colors.green),
+          SizedBox(width: 8),
+          Text('Gửi lời mời', style: TextStyle(fontWeight: FontWeight.bold)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bạn muốn gửi lời mời đến:', style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 8),
+            Text(hoTen, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(viTri, style: const TextStyle(color: Colors.green)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gửi lời mời', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await InvitationService.sendInvitation(
+        idCv: idCv,
+        hoTen: hoTen,
+        viTri: viTri,
+        companyName: 'Công ty của bạn',
+        jobTitle: viTri,
+        salary: 'Thỏa thuận',
+        location: 'Hồ Chí Minh',
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text('Đã gửi lời mời đến $hoTen!'),
+          ]),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi gửi lời mời: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Widget _buildError() => Center(
@@ -159,9 +234,14 @@ class _KhamPhaCvPageState extends State<KhamPhaCvPage> {
 // ─── Feed Card ───────────────────────────────────────────────────────────────
 
 class _CvFeedCard extends StatelessWidget {
-  const _CvFeedCard({required this.cv, required this.onViewProfile});
+  const _CvFeedCard({
+    required this.cv,
+    required this.onViewProfile,
+    required this.onSendInvitation,
+  });
   final Map<String, dynamic> cv;
   final VoidCallback onViewProfile;
+  final VoidCallback onSendInvitation;
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +266,11 @@ class _CvFeedCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: Row(children: [
-              _Avatar(name: hoTen),
+              // Avatar - có thể click để xem profile
+              GestureDetector(
+                onTap: onViewProfile,
+                child: _Avatar(name: hoTen),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -194,8 +278,13 @@ class _CvFeedCard extends StatelessWidget {
                   children: [
                     Row(children: [
                       Expanded(
-                        child: Text(hoTen,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        child: GestureDetector(
+                          onTap: onViewProfile,
+                          child: Text(hoTen,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15,
+                                  decoration: TextDecoration.underline, decorationColor: Colors.green),
+                          ),
+                        ),
                       ),
                       // Masked badge
                       Container(
@@ -262,14 +351,29 @@ class _CvFeedCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
               const Spacer(),
+              // Nút Xem hồ sơ
               TextButton.icon(
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF00C853),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
                 onPressed: onViewProfile,
                 icon: const Icon(Icons.person_outline, size: 16),
                 label: const Text('Xem hồ sơ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 4),
+              // Nút Lời mời ứng viên
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B5E20),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                onPressed: onSendInvitation,
+                icon: const Icon(Icons.send, size: 14),
+                label: const Text('Mời', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ]),
           ),
@@ -284,159 +388,6 @@ class _CvFeedCard extends StatelessWidget {
       return '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}';
     } catch (_) { return iso; }
   }
-}
-
-// ─── Profile Bottom Sheet ─────────────────────────────────────────────────────
-
-class _ProfileSheet extends StatelessWidget {
-  const _ProfileSheet({required this.cv});
-  final Map<String, dynamic> cv;
-
-  @override
-  Widget build(BuildContext context) {
-    final hoTen   = cv['hoTen']?.toString() ?? '---';
-    final viTri   = cv['viTriUngTuyen']?.toString() ?? '';
-    final email   = cv['email']?.toString() ?? '---';
-    final sdt     = cv['soDienThoai']?.toString() ?? '---';
-    final diaChi  = cv['diaChi']?.toString() ?? '---';
-    final kyNang  = cv['kyNang']?.toString() ?? '';
-    final hocVan  = cv['hocVan']?.toString() ?? '';
-    final kinhNghiem = cv['kinhNghiem']?.toString() ?? '';
-    final mucTieu = cv['mucTieu']?.toString() ?? '';
-    final chungChi = cv['chungChi']?.toString() ?? '';
-    final hoatDong = cv['hoatDong']?.toString() ?? '';
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Handle bar
-          const SizedBox(height: 10),
-          Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-
-          // Gradient header
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [Color(0xFF1B5E20), Color(0xFF43A047)]),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(children: [
-              _Avatar(name: hoTen, radius: 36, fontSize: 22),
-              const SizedBox(height: 10),
-              Text(hoTen, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              if (viTri.isNotEmpty)
-                Text(viTri, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 8),
-              // Mask notice
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.shield_outlined, size: 13, color: Colors.white70),
-                  SizedBox(width: 5),
-                  Text('Thông tin cá nhân đã được bảo vệ',
-                      style: TextStyle(color: Colors.white70, fontSize: 11)),
-                ]),
-              ),
-            ]),
-          ),
-
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Thông tin cá nhân (đã mask)
-                  _sectionTitle('Thông tin liên hệ'),
-                  _maskedInfoRow(Icons.phone_outlined, 'Điện thoại', sdt),
-                  _maskedInfoRow(Icons.email_outlined, 'Email', email),
-                  _maskedInfoRow(Icons.location_on_outlined, 'Địa chỉ', diaChi),
-                  const SizedBox(height: 8),
-
-                  if (mucTieu.isNotEmpty) ...[
-                    _sectionTitle('Mục tiêu nghề nghiệp'),
-                    _contentBox(mucTieu),
-                  ],
-                  if (kyNang.isNotEmpty) ...[
-                    _sectionTitle('Kỹ năng'),
-                    Wrap(
-                      spacing: 6, runSpacing: 6,
-                      children: kyNang.split(',').map((s) => _SkillChip(s.trim())).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (hocVan.isNotEmpty) ...[
-                    _sectionTitle('Học vấn'),
-                    _contentBox(hocVan),
-                  ],
-                  if (kinhNghiem.isNotEmpty) ...[
-                    _sectionTitle('Kinh nghiệm làm việc'),
-                    // Hiển thị kinh nghiệm đã mask tên công ty
-                    _contentBox(CvMasking.maskKinhNghiem(kinhNghiem)),
-                  ],
-                  if (chungChi.isNotEmpty) ...[
-                    _sectionTitle('Chứng chỉ'),
-                    _contentBox(chungChi),
-                  ],
-                  if (hoatDong.isNotEmpty) ...[
-                    _sectionTitle('Hoạt động'),
-                    _contentBox(hoatDong),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, top: 4),
-        child: Text(title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
-      );
-
-  Widget _maskedInfoRow(IconData icon, String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontSize: 14)),
-            ]),
-          ),
-          const Icon(Icons.lock, size: 12, color: Color(0xFFBDBDBD)),
-        ]),
-      );
-
-  Widget _contentBox(String text) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Text(text, style: const TextStyle(fontSize: 13, height: 1.5)),
-      );
 }
 
 // ─── Shared widgets ────────────────────────────────────────────────────────────

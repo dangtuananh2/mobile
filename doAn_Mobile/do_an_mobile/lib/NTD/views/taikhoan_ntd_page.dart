@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../UngVien/views/login.dart';
 import 'capnhat_thongtin_ntd_page.dart'; // File này phải để cùng thư mục nhé
 
 class TaiKhoanNtdPage extends StatefulWidget {
@@ -242,12 +243,12 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
 
                   const SizedBox(height: 20),
 
-                  // 🔴 ĐĂNG XUẤT (Đã gỡ bỏ logic chuyển trang gây lỗi)
+                  // 🔴 ĐĂNG XUẤT — điều hướng thật về Login
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: Colors.red,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -257,36 +258,38 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text("Xác nhận"),
-                            content: const Text("Bạn có chắc muốn đăng xuất?"),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18)),
+                            title: const Text("Xác nhận đăng xuất",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            content: const Text(
+                                "Bạn có chắc muốn đăng xuất khỏi tài khoản?"),
                             actions: [
                               TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context); // Đóng dialog
-                                },
+                                onPressed: () =>
+                                    Navigator.pop(context), // Đóng dialog
                                 child: const Text(
-                                  "Không",
+                                  "Hủy",
                                   style: TextStyle(color: Colors.grey),
                                 ),
                               ),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: Colors.red,
                                 ),
                                 onPressed: () {
-                                  Navigator.pop(context); // Đóng dialog
-                                  // Chỉ hiện SnackBar báo hiệu thay vì chuyển trang
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Giả lập Đăng xuất thành công!",
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
+                                  // Đóng dialog trước
+                                  Navigator.pop(context);
+                                  // Điều hướng thẳng về trang Login, xóa toàn bộ stack
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const Login()),
+                                    (route) => false,
                                   );
                                 },
                                 child: const Text(
-                                  "Xác nhận",
+                                  "Đăng xuất",
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ),

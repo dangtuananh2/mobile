@@ -75,12 +75,59 @@ class _TrangChuNtdPageState extends State<TrangChuNtdPage> {
             ),
             child: Column(
               children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Quản lý tuyển dụng',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Quản lý tuyển dụng',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Row(children: [
+                      // Nút Tìm kiếm
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          showSearch(
+                            context: context,
+                            delegate: _JobSearchDelegate(
+                              jobs: _jobs,
+                              onSelect: (job) {
+                                final idTin = job['idTin'] ?? job['id_tin'] ?? 0;
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => DanhSachCvPage(idTinTuyenDung: int.tryParse(idTin.toString()) ?? 0),
+                                ));
+                              },
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.search, size: 16),
+                        label: const Text('Tìm kiếm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 8),
+                      // Nút Đăng tuyển dụng
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00C853),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          await Navigator.push(context, MaterialPageRoute(builder: (_) => const DangTuyenDungPage()));
+                          _loadJobs();
+                        },
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Đăng tuyển', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ]),
+                  ],
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
                 TextField(
                   onChanged: (v) => setState(() => searchText = v),
                   decoration: InputDecoration(
@@ -308,6 +355,61 @@ class _TrangChuNtdPageState extends State<TrangChuNtdPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Job Search Delegate ─────────────────────────────────────────────────────
+
+class _JobSearchDelegate extends SearchDelegate<String> {
+  final List<Map<String, dynamic>> jobs;
+  final void Function(Map<String, dynamic> job) onSelect;
+
+  _JobSearchDelegate({required this.jobs, required this.onSelect});
+
+  @override
+  String get searchFieldLabel => 'Tìm tiêu đề hoặc kỹ năng...';
+
+  @override
+  List<Widget> buildActions(BuildContext context) => [
+        IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
+      ];
+
+  @override
+  Widget buildLeading(BuildContext context) =>
+      IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, ''));
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList();
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList();
+
+  Widget _buildList() {
+    final filtered = jobs.where((j) {
+      final q = query.toLowerCase();
+      return j['tieuDe']?.toString().toLowerCase().contains(q) == true ||
+          j['kyNang']?.toString().toLowerCase().contains(q) == true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.grey)));
+    }
+
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (_, i) {
+        final job = filtered[i];
+        return ListTile(
+          leading: const Icon(Icons.work_outline, color: Colors.green),
+          title: Text(job['tieuDe']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text(job['kyNang']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () {
+            close(context, '');
+            onSelect(job);
+          },
+        );
+      },
     );
   }
 }

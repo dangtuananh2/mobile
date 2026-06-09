@@ -18,7 +18,7 @@ class _HomeNtdPageState extends State<HomeNtdPage> {
   final List<Widget> _pages = const [
     TrangChuNtdPage(),
     DanhSachCvPage(),
-    KhamPhaCvPage(),   // ← Tab mới ở giữa
+    KhamPhaCvPage(),   // ← Tab Khám phá
     ThongBaoPage(),
     TaiKhoanNtdPage(),
   ];

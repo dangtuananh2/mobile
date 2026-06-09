@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DangTuyenDungPage extends StatefulWidget {
   const DangTuyenDungPage({super.key});
@@ -11,6 +13,12 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
   String? _selectedCategory;
   final List<String> _skills = [];
   final TextEditingController _skillCtrl = TextEditingController();
+  final TextEditingController _tieuDeCtrl = TextEditingController();
+  final TextEditingController _mucLuongCtrl = TextEditingController();
+  final TextEditingController _diaDiemCtrl = TextEditingController();
+  final TextEditingController _moTaCtrl = TextEditingController();
+  final TextEditingController _yeuCauCtrl = TextEditingController();
+  final TextEditingController _quyenLoiCtrl = TextEditingController();
 
   void _addSkill() {
     if (_skillCtrl.text.isNotEmpty) {
@@ -19,6 +27,48 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
         _skillCtrl.clear();
       });
     }
+  }
+
+  // Lưu bài đăng vào SharedPreferences để UV có thể thấy
+  Future<void> _publishJob() async {
+    final tieuDe = _tieuDeCtrl.text.trim();
+    final mucLuong = _mucLuongCtrl.text.trim();
+    final diaDiem = _diaDiemCtrl.text.trim();
+    final moTa = _moTaCtrl.text.trim();
+
+    if (tieuDe.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập tiêu đề công việc'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // Tạo bản ghi việc làm mới
+    final newJob = <String, String>{
+      'title': tieuDe,
+      'company': 'Công ty TNHH Tango',
+      'salary': mucLuong.isNotEmpty ? mucLuong : 'Thỏa thuận',
+      'location': diaDiem.isNotEmpty ? diaDiem : 'Hồ Chí Minh',
+      'description': moTa,
+      'category': _selectedCategory ?? 'Khác',
+      'skills': _skills.join(', '),
+      'publishedAt': DateTime.now().toIso8601String(),
+    };
+
+    // Lưu vào SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final String raw = prefs.getString('ntd_published_jobs') ?? '[]';
+    final List<dynamic> list = jsonDecode(raw);
+    list.insert(0, newJob);
+    await prefs.setString('ntd_published_jobs', jsonEncode(list));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Xuất bản tin thành công!'), backgroundColor: Colors.green),
+    );
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) Navigator.pop(context);
+    });
   }
 
   @override
@@ -59,7 +109,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel("Tiêu đề công việc"),
-                              _buildTextField("VD: Nhân viên Telesales B2C"),
+                              _buildTextField("VD: Nhân viên Telesales B2C", controller: _tieuDeCtrl),
                               const SizedBox(height: 15),
                               Row(
                                 children: [
@@ -68,7 +118,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         _buildLabel("Mức lương"),
-                                        _buildTextField("VD: 10 - 15 Tr"),
+                                        _buildTextField("VD: 10 - 15 Tr", controller: _mucLuongCtrl),
                                       ],
                                     ),
                                   ),
@@ -86,7 +136,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
                               ),
                               const SizedBox(height: 15),
                               _buildLabel("Địa điểm làm việc"),
-                              _buildTextField("VD: 140 Lê Trọng Tấn, Tân Phú"),
+                              _buildTextField("VD: 140 Lê Trọng Tấn, Tân Phú", controller: _diaDiemCtrl),
                             ],
                           ),
                         ),
@@ -127,7 +177,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel("Mô tả công việc"),
-                              _buildTextField("Nhập mô tả...", maxLines: 4),
+                              _buildTextField("Nhập mô tả...", maxLines: 4, controller: _moTaCtrl),
                               const SizedBox(height: 15),
                               _buildLabel("Yêu cầu ứng viên"),
                               _buildTextField("Nhập yêu cầu bằng cấp, kinh nghiệm...", maxLines: 4),
@@ -163,7 +213,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
               child: IconButton(
                 icon: const Icon(Icons.save_outlined, color: Colors.green),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã lưu nháp tin tuyển dụng!'), backgroundColor: Colors.green));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dạ lưu nháp tin tuyển dụng!'), backgroundColor: Colors.green));
                 },
               ),
             ),
@@ -175,10 +225,7 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xuất bản tin thành công!'), backgroundColor: Colors.green));
-                  Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
-                },
+                onPressed: _publishJob,
                 child: const Text("XUẤT BẢN TIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),

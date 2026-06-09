@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:do_an_mobile/UngVien/views/ntd_uv.dart';
 import 'package:do_an_mobile/UngVien/views/thongbao.dart';
@@ -5,6 +6,7 @@ import 'package:do_an_mobile/UngVien/views/taikhoan.dart';
 import 'package:do_an_mobile/UngVien/views/taocv.dart';
 import 'package:do_an_mobile/UngVien/views/map_page.dart';
 import 'package:do_an_mobile/UngVien/views/detail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TrangChu extends StatefulWidget {
   const TrangChu({super.key});
@@ -19,8 +21,8 @@ class _TrangChuState extends State<TrangChu> {
   String selectedLocation = "Tất cả";
   String searchText = "";
 
-  // 🔥 DATA JOB (THÊM)
-  final List<Map<String, String>> jobs = [
+  // 🔥 DATA JOB (cơ bản + từ NTD đăng)
+  final List<Map<String, String>> _defaultJobs = [
     {
       "title": "Nhân Viên Kinh Doanh Fulltime (Công Ty Startup)",
       "company": "CÔNG TY CỔ PHẦN ĐÀO TẠO NGOẠI NGỮ TANGO",
@@ -35,16 +37,45 @@ class _TrangChuState extends State<TrangChu> {
     },
   ];
 
+  List<Map<String, String>> _ntdJobs = [];
+
+  List<Map<String, String>> get jobs => [..._defaultJobs, ..._ntdJobs];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNtdJobs();
+  }
+
+  Future<void> _loadNtdJobs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String raw = prefs.getString('ntd_published_jobs') ?? '[]';
+      final List<dynamic> list = jsonDecode(raw);
+      setState(() {
+        _ntdJobs = list
+            .cast<Map<String, dynamic>>()
+            .map<Map<String, String>>((j) => {
+                  'title': j['title']?.toString() ?? '',
+                  'company': j['company']?.toString() ?? 'Nhà tuyển dụng',
+                  'salary': j['salary']?.toString() ?? 'Thỏa thuận',
+                  'location': j['location']?.toString() ?? 'Hồ Chí Minh',
+                })
+            .toList();
+      });
+    } catch (_) {}
+  }
+
   // 🔥 FILTER LOGIC
   List<Map<String, String>> get filteredJobs {
     return jobs.where((job) {
       bool matchLocation = selectedLocation == "Tất cả" ||
-          job["location"] == selectedLocation;
+          (job["location"] ?? '').toLowerCase().contains(selectedLocation.toLowerCase());
 
       bool matchSearch = searchText.isEmpty ||
-          job["location"]!
-              .toLowerCase()
-              .contains(searchText.toLowerCase());
+          (job["title"] ?? '').toLowerCase().contains(searchText.toLowerCase()) ||
+          (job["company"] ?? '').toLowerCase().contains(searchText.toLowerCase()) ||
+          (job["location"] ?? '').toLowerCase().contains(searchText.toLowerCase());
 
       return matchLocation && matchSearch;
     }).toList();
