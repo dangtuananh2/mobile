@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import '../../UngVien/utils/api_constants.dart';
 
 class InvitationService {
-  static const String _invitationsKey = 'ntd_invitations';
-  static const String _notificationsKey = 'ntd_notifications';
-
   static Future<void> sendInvitation({
     required String idCv,
     required String hoTen,
@@ -15,91 +14,44 @@ class InvitationService {
     String location = 'Hồ Chí Minh',
   }) async {
     final prefs = await SharedPreferences.getInstance();
+    final int userId = prefs.getInt('userId') ?? 0;
 
-    final List<Map<String, dynamic>> invitations = await getInvitations();
-
-    final existing = invitations.indexWhere((inv) => inv['idCv'] == idCv);
-    if (existing != -1) {
-      invitations[existing] = {
+    final response = await http.post(
+      Uri.parse(ApiConstants.loiMoi),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
         'idCv': idCv,
-        'hoTen': hoTen,
-        'viTri': viTri,
-        'companyName': companyName,
-        'jobTitle': jobTitle,
-        'salary': salary,
-        'location': location,
-        'trangThai': 'Chờ phản hồi',
-        'thoiGian': DateTime.now().toIso8601String(),
-      };
-    } else {
-      invitations.add({
-        'idCv': idCv,
-        'hoTen': hoTen,
-        'viTri': viTri,
-        'companyName': companyName,
-        'jobTitle': jobTitle,
-        'salary': salary,
-        'location': location,
-        'trangThai': 'Chờ phản hồi',
-        'thoiGian': DateTime.now().toIso8601String(),
-      });
-    }
-
-    await prefs.setString(_invitationsKey, jsonEncode(invitations));
-
-    await _syncToUv(
-      idCv: idCv,
-      hoTen: hoTen,
-      viTri: viTri,
-      companyName: companyName,
-      jobTitle: jobTitle,
-      salary: salary,
-      location: location,
+        'idTaikhoan': userId,
+        'tieuDe': jobTitle,
+        'noiDung': 'Chào $hoTen, chúng tôi muốn mời bạn ứng tuyển cho vị trí $viTri.',
+      }),
     );
-  }
 
-  static Future<void> _syncToUv({
-    required String idCv,
-    required String hoTen,
-    required String viTri,
-    required String companyName,
-    required String jobTitle,
-    required String salary,
-    required String location,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String raw = prefs.getString('uv_invitations') ?? '[]';
-    final List<dynamic> list = jsonDecode(raw);
-    final List<Map<String, dynamic>> uvInvitations =
-        list.cast<Map<String, dynamic>>();
-
-    final existing = uvInvitations.indexWhere((inv) => inv['idCv'] == idCv);
-    final entry = {
-      'idCv': idCv,
-      'hoTen': hoTen,
-      'viTri': viTri,
-      'companyName': companyName,
-      'jobTitle': jobTitle,
-      'salary': salary,
-      'location': location,
-      'trangThai': 'Chờ phản hồi',
-      'thoiGian': DateTime.now().toIso8601String(),
-    };
-
-    if (existing != -1) {
-      uvInvitations[existing] = entry;
-    } else {
-      uvInvitations.add(entry);
+    if (response.statusCode != 200) {
+      throw Exception('Lỗi gửi lời mời: ${response.body}');
     }
-
-    await prefs.setString('uv_invitations', jsonEncode(uvInvitations));
   }
 
   static Future<List<Map<String, dynamic>>> getInvitations() async {
     final prefs = await SharedPreferences.getInstance();
-    final String raw = prefs.getString(_invitationsKey) ?? '[]';
-    final List<dynamic> list = jsonDecode(raw);
-    return list.cast<Map<String, dynamic>>();
+    final int userId = prefs.getInt('userId') ?? 0;
+    final String role = prefs.getString('vaiTro') ?? '';
+
+    final url = role == 'nha_tuyen_dung'
+        ? '${ApiConstants.loiMoi}/recruiter/$userId'
+        : '${ApiConstants.loiMoi}/candidate/$userId';
+
+    final res = await http.get(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Lỗi tải danh sách lời mời: ${res.body}');
+    }
   }
 
   static Future<void> uvRespondToInvitation({
@@ -107,69 +59,49 @@ class InvitationService {
     required String response,
     required String hoTen,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final invitations = await getInvitations();
-    final idx = invitations.indexWhere((inv) => inv['idCv'] == idCv);
-    if (idx != -1) {
-      invitations[idx]['trangThai'] = response;
-      await prefs.setString(_invitationsKey, jsonEncode(invitations));
-    }
-
-    final String uvRaw = prefs.getString('uv_invitations') ?? '[]';
-    final List<dynamic> uvList = jsonDecode(uvRaw);
-    final List<Map<String, dynamic>> uvInvitations =
-        uvList.cast<Map<String, dynamic>>();
-    final uvIdx = uvInvitations.indexWhere((inv) => inv['idCv'] == idCv);
-    if (uvIdx != -1) {
-      uvInvitations[uvIdx]['trangThai'] = response;
-      await prefs.setString('uv_invitations', jsonEncode(uvInvitations));
-    }
-
-    await _addNtdNotification(
-      title: response == 'Đồng ý'
-          ? '$hoTen đã đồng ý lời mời'
-          : '$hoTen đã từ chối lời mời',
-      body: response == 'Đồng ý'
-          ? '$hoTen đã chấp nhận lời mời kết nối từ công ty bạn. Hãy liên hệ sớm!'
-          : '$hoTen đã từ chối lời mời. Bạn có thể thử với ứng viên khác.',
-      isAccepted: response == 'Đồng ý',
+    final res = await http.put(
+      Uri.parse('${ApiConstants.loiMoi}/respond'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'idCv': idCv,
+        'response': response,
+      }),
     );
-  }
 
-  static Future<void> _addNtdNotification({
-    required String title,
-    required String body,
-    required bool isAccepted,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String raw = prefs.getString(_notificationsKey) ?? '[]';
-    final List<dynamic> list = jsonDecode(raw);
-    final List<Map<String, dynamic>> notifications =
-        list.cast<Map<String, dynamic>>();
-
-    notifications.insert(0, {
-      'id': DateTime.now().millisecondsSinceEpoch,
-      'title': title,
-      'sub': body,
-      'time': 'Vừa xong',
-      'unread': true,
-      'type': isAccepted ? 'accepted' : 'rejected',
-    });
-
-    await prefs.setString(_notificationsKey, jsonEncode(notifications));
+    if (res.statusCode != 200) {
+      throw Exception('Lỗi phản hồi lời mời: ${res.body}');
+    }
   }
 
   static Future<List<Map<String, dynamic>>> getNtdNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    final String raw = prefs.getString(_notificationsKey) ?? '[]';
-    final List<dynamic> list = jsonDecode(raw);
-    return list.cast<Map<String, dynamic>>();
+    final int userId = prefs.getInt('userId') ?? 0;
+
+    final res = await http.get(
+      Uri.parse('${ApiConstants.loiMoi}/notifications/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Lỗi tải thông báo: ${res.body}');
+    }
   }
 
   static Future<void> saveNtdNotifications(
       List<Map<String, dynamic>> notifications) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_notificationsKey, jsonEncode(notifications));
+    final int userId = prefs.getInt('userId') ?? 0;
+
+    final res = await http.put(
+      Uri.parse('${ApiConstants.loiMoi}/notifications/mark-all-read/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Lỗi lưu trạng thái thông báo: ${res.body}');
+    }
   }
 }

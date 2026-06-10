@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../UngVien/utils/api_constants.dart';
 
 class CapNhatThongTinNtdPage extends StatefulWidget {
   const CapNhatThongTinNtdPage({super.key});
@@ -33,6 +36,28 @@ class _CapNhatThongTinNtdPageState extends State<CapNhatThongTinNtdPage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
+    final int userId = prefs.getInt('userId') ?? 0;
+
+    if (userId != 0) {
+      try {
+        final res = await http.get(
+          Uri.parse('${ApiConstants.taiKhoan}/$userId'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 10));
+
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(res.body);
+          final name = data['tenCongTy']?.toString() ?? 'Công ty TNHH Tango';
+          final phone = data['soDienThoai']?.toString() ?? '0909123456';
+          final address = data['diaChi']?.toString() ?? 'Quận 1, TP.HCM';
+
+          await prefs.setString('ntd_company_name', name);
+          await prefs.setString('ntd_company_phone', phone);
+          await prefs.setString('ntd_company_address', address);
+        }
+      } catch (_) {}
+    }
+
     setState(() {
       _nameCtrl.text = prefs.getString('ntd_company_name') ?? 'Công ty TNHH Tango';
       _taxCtrl.text = prefs.getString('ntd_company_tax') ?? '0123456789';
@@ -44,10 +69,33 @@ class _CapNhatThongTinNtdPageState extends State<CapNhatThongTinNtdPage> {
 
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('ntd_company_name', _nameCtrl.text.trim());
-    await prefs.setString('ntd_company_tax', _taxCtrl.text.trim());
-    await prefs.setString('ntd_company_phone', _phoneCtrl.text.trim());
-    await prefs.setString('ntd_company_address', _addressCtrl.text.trim());
+    final int userId = prefs.getInt('userId') ?? 0;
+
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final address = _addressCtrl.text.trim();
+    final tax = _taxCtrl.text.trim();
+
+    if (userId != 0) {
+      final res = await http.put(
+        Uri.parse('${ApiConstants.taiKhoan}/nha-tuyen-dung/$userId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'tenCongTy': name,
+          'soDienThoai': phone,
+          'diaChi': address,
+        }),
+      );
+
+      if (res.statusCode != 200) {
+        throw Exception('Lỗi cập nhật cơ sở dữ liệu: ${res.body}');
+      }
+    }
+
+    await prefs.setString('ntd_company_name', name);
+    await prefs.setString('ntd_company_tax', tax);
+    await prefs.setString('ntd_company_phone', phone);
+    await prefs.setString('ntd_company_address', address);
   }
 
   @override

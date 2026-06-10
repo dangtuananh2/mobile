@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +28,10 @@ public partial class MobileAppContext : DbContext
     public virtual DbSet<UngTuyen> UngTuyens { get; set; }
 
     public virtual DbSet<UngVien> UngViens { get; set; }
+
+    public virtual DbSet<LoiMoiUngVien> LoiMoiUngViens { get; set; }
+
+    public virtual DbSet<ThongBao> ThongBaos { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -291,6 +295,52 @@ public partial class MobileAppContext : DbContext
             entity.HasOne(d => d.IdTaikhoanNavigation).WithOne(p => p.UngVien)
                 .HasForeignKey<UngVien>(d => d.IdTaikhoan)
                 .HasConstraintName("FK_UngVien_TaiKhoan");
+        });
+
+        modelBuilder.Entity<LoiMoiUngVien>(entity =>
+        {
+            entity.HasKey(e => e.IdLoiMoi).HasName("PK_LoiMoiUngVien");
+
+            entity.ToTable("LoiMoiUngVien");
+
+            entity.Property(e => e.IdLoiMoi).HasColumnName("id_loi_moi");
+            entity.Property(e => e.IdNtd).HasColumnName("id_ntd");
+            entity.Property(e => e.IdCv).HasColumnName("id_cv");
+            entity.Property(e => e.TieuDe).HasMaxLength(200).HasColumnName("tieu_de");
+            entity.Property(e => e.NoiDung).HasColumnName("noi_dung");
+            entity.Property(e => e.TrangThai).HasMaxLength(50).HasColumnName("trang_thai");
+            entity.Property(e => e.NgayGui).HasColumnType("datetime").HasColumnName("ngay_gui");
+            entity.Property(e => e.NgayPhanHoi).HasColumnType("datetime").HasColumnName("ngay_phan_hoi");
+
+            entity.HasOne(d => d.IdCvNavigation).WithMany()
+                .HasForeignKey(d => d.IdCv)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LoiMoiUngVien_HoSoCV");
+
+            entity.HasOne(d => d.IdNtdNavigation).WithMany()
+                .HasForeignKey(d => d.IdNtd)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LoiMoiUngVien_NhaTuyenDung");
+        });
+
+        modelBuilder.Entity<ThongBao>(entity =>
+        {
+            entity.HasKey(e => e.IdThongbao).HasName("PK_ThongBao");
+
+            entity.ToTable("ThongBao");
+
+            entity.Property(e => e.IdThongbao).HasColumnName("id_thongbao");
+            entity.Property(e => e.IdTaikhoan).HasColumnName("id_taikhoan");
+            entity.Property(e => e.TieuDe).HasMaxLength(255).HasColumnName("tieu_de");
+            entity.Property(e => e.NoiDung).HasColumnName("noi_dung");
+            entity.Property(e => e.ThoiGian).HasColumnType("datetime").HasDefaultValueSql("(getdate())").HasColumnName("thoi_gian");
+            entity.Property(e => e.DaDoc).HasDefaultValue(false).HasColumnName("da_doc");
+            entity.Property(e => e.Loai).HasMaxLength(50).HasDefaultValue("default").HasColumnName("loai");
+
+            entity.HasOne(d => d.IdTaikhoanNavigation).WithMany()
+                .HasForeignKey(d => d.IdTaikhoan)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ThongBao_TaiKhoan");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../UngVien/utils/api_constants.dart';
 import '../../UngVien/views/login.dart';
 import 'capnhat_thongtin_ntd_page.dart'; // File này phải để cùng thư mục nhé
 
@@ -25,6 +28,28 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
 
   Future<void> _loadCompanyData() async {
     final prefs = await SharedPreferences.getInstance();
+    final int userId = prefs.getInt('userId') ?? 0;
+    
+    if (userId != 0) {
+      try {
+        final res = await http.get(
+          Uri.parse('${ApiConstants.taiKhoan}/$userId'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 10));
+
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(res.body);
+          final name = data['tenCongTy']?.toString() ?? 'Công ty TNHH Tango';
+          final phone = data['soDienThoai']?.toString() ?? '0909123456';
+          final address = data['diaChi']?.toString() ?? 'Quận 1, TP.HCM';
+          
+          await prefs.setString('ntd_company_name', name);
+          await prefs.setString('ntd_company_phone', phone);
+          await prefs.setString('ntd_company_address', address);
+        }
+      } catch (_) {}
+    }
+
     setState(() {
       tenCongTy = prefs.getString('ntd_company_name') ?? 'Công ty TNHH Tango';
       maSoThue = prefs.getString('ntd_company_tax') ?? '0123456789';

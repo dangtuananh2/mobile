@@ -188,6 +188,25 @@ CREATE TABLE LuuTin (
 GO
 
 -- =========================
+-- BẢNG THÔNG BÁO
+-- =========================
+CREATE TABLE ThongBao (
+    id_thongbao INT PRIMARY KEY IDENTITY(1,1),
+    id_taikhoan INT NOT NULL,
+    tieu_de NVARCHAR(255) NOT NULL,
+    noi_dung NVARCHAR(MAX) NOT NULL,
+    thoi_gian DATETIME DEFAULT GETDATE(),
+    da_doc BIT DEFAULT 0,
+    loai NVARCHAR(50) NOT NULL DEFAULT 'default',
+
+    CONSTRAINT FK_ThongBao_TaiKhoan
+    FOREIGN KEY (id_taikhoan)
+    REFERENCES TaiKhoan(id_taikhoan)
+    ON DELETE CASCADE
+);
+GO
+
+-- =========================
 -- UNIQUE CONSTRAINTS
 -- =========================
 
@@ -380,6 +399,30 @@ VALUES (
     'Abc@12345678',
     'ung_vien'
 );
+GO
+
+-- =====================================================
+-- BỔ SUNG CHI TIẾT HỒ SƠ CHO TÀI KHOẢN MỚI
+-- =====================================================
+
+-- Thêm chi tiết hồ sơ NTD cho minhdang05@gmail.com
+DECLARE @id_tk_ntd INT;
+SELECT @id_tk_ntd = id_taikhoan FROM TaiKhoan WHERE email = 'minhdang05@gmail.com';
+IF @id_tk_ntd IS NOT NULL AND NOT EXISTS (SELECT * FROM NhaTuyenDung WHERE id_taikhoan = @id_tk_ntd)
+BEGIN
+    INSERT INTO NhaTuyenDung (id_taikhoan, ten_cong_ty, dia_chi, linh_vuc)
+    VALUES (@id_tk_ntd, N'Công ty Tango', N'Hồ Chí Minh', N'IT / Công nghệ');
+END
+
+-- Thêm chi tiết hồ sơ UV cho uv03@gmail.com
+DECLARE @id_tk_uv INT;
+SELECT @id_tk_uv = id_taikhoan FROM TaiKhoan WHERE email = 'uv03@gmail.com';
+IF @id_tk_uv IS NOT NULL AND NOT EXISTS (SELECT * FROM UngVien WHERE id_taikhoan = @id_tk_uv)
+BEGIN
+    INSERT INTO UngVien (id_taikhoan, ho_ten, dia_chi, vi_tri_ung_tuyen)
+    VALUES (@id_tk_uv, N'Nguyễn Văn Ứng Viên', N'Hồ Chí Minh', N'Frontend Developer');
+END
+GO
 
 SELECT *
 FROM TaiKhoan;

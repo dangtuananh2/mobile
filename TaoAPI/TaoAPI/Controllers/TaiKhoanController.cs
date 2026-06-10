@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Mail;
@@ -226,6 +226,10 @@ namespace TaoAPI.Controllers
                     tenCongTy = _context.NhaTuyenDungs
                         .Where(n => n.IdTaikhoan == t.IdTaikhoan)
                         .Select(n => n.TenCongTy)
+                        .FirstOrDefault(),
+                    diaChi = _context.NhaTuyenDungs
+                        .Where(n => n.IdTaikhoan == t.IdTaikhoan)
+                        .Select(n => n.DiaChi)
                         .FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
@@ -234,6 +238,52 @@ namespace TaoAPI.Controllers
                 return NotFound("Không tìm thấy tài khoản");
 
             return Ok(data);
+        }
+
+        public class UpdateNtdProfileRequest
+        {
+            public string TenCongTy { get; set; } = null!;
+            public string? SoDienThoai { get; set; }
+            public string? DiaChi { get; set; }
+            public string? Website { get; set; }
+            public string? LinhVuc { get; set; }
+            public string? MoTa { get; set; }
+        }
+
+        [HttpPut("nha-tuyen-dung/{idTaikhoan}")]
+        public async Task<IActionResult> UpdateNtdProfile(int idTaikhoan, [FromBody] UpdateNtdProfileRequest req)
+        {
+            var user = await _context.TaiKhoans.FindAsync(idTaikhoan);
+            if (user == null) return NotFound("Không tìm thấy tài khoản");
+
+            var ntd = await _context.NhaTuyenDungs.FirstOrDefaultAsync(x => x.IdTaikhoan == idTaikhoan);
+            if (ntd == null) return NotFound("Không tìm thấy thông tin Nhà tuyển dụng");
+
+            if (!string.IsNullOrWhiteSpace(req.TenCongTy))
+            {
+                ntd.TenCongTy = req.TenCongTy;
+            }
+            if (req.DiaChi != null)
+            {
+                ntd.DiaChi = req.DiaChi;
+            }
+            if (req.Website != null)
+            {
+                ntd.Website = req.Website;
+            }
+            if (req.LinhVuc != null)
+            {
+                ntd.LinhVuc = req.LinhVuc;
+            }
+            if (req.MoTa != null)
+            {
+                ntd.MoTa = req.MoTa;
+            }
+
+            user.SoDienThoai = req.SoDienThoai;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật hồ sơ thành công!" });
         }
 
         // =====================================================

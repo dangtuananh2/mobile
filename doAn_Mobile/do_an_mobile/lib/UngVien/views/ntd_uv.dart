@@ -4,8 +4,6 @@ import 'package:do_an_mobile/UngVien/views/trangchu.dart';
 import 'package:do_an_mobile/UngVien/views/taikhoan.dart';
 import 'package:do_an_mobile/UngVien/views/thongbao.dart';
 import 'package:do_an_mobile/UngVien/views/taocv.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class NTD_UV extends StatefulWidget {
   const NTD_UV({super.key});
@@ -30,11 +28,9 @@ class _NTD_UVState extends State<NTD_UV> {
   Future<void> _loadInvitations() async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String raw = prefs.getString('uv_invitations') ?? '[]';
-      final List<dynamic> list = jsonDecode(raw);
+      final list = await InvitationService.getInvitations();
       setState(() {
-        _allInvitations = list.cast<Map<String, dynamic>>();
+        _allInvitations = list;
         _isLoading = false;
       });
     } catch (_) {

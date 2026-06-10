@@ -13,38 +13,31 @@ class _ThongBaoPageState extends State<ThongBaoPage> {
   List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
 
-  // Thông báo tĩnh mặc định
-  final List<Map<String, dynamic>> _defaultNotifications = [
-    {
-      "id": 1,
-      "title": "Có ứng viên mới",
-      "sub": "Trần Văn Bình vừa nộp CV Telesales.",
-      "time": "10 phút trước",
-      "unread": true,
-      "type": "new_cv",
-    },
-    {
-      "id": 2,
-      "title": "Xác nhận phỏng vấn",
-      "sub": "Nguyễn Thị A đã xác nhận lịch phỏng vấn.",
-      "time": "2 giờ trước",
-      "unread": true,
-      "type": "interview",
-    },
-    {
-      "id": 3,
-      "title": "Tin sắp hết hạn",
-      "sub": "Chiến dịch Marketing còn 2 ngày.",
-      "time": "1 ngày trước",
-      "unread": false,
-      "type": "warning",
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+  }
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(timeStr);
+      final diff = DateTime.now().difference(dt);
+      if (diff.inSeconds < 60) {
+        return 'Vừa xong';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} phút trước';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} giờ trước';
+      } else if (diff.inDays < 7) {
+        return '${diff.inDays} ngày trước';
+      } else {
+        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      }
+    } catch (_) {
+      return timeStr;
+    }
   }
 
   Future<void> _loadNotifications() async {
@@ -52,13 +45,12 @@ class _ThongBaoPageState extends State<ThongBaoPage> {
     try {
       final invitationNotifs = await InvitationService.getNtdNotifications();
       setState(() {
-        // Kết hợp thông báo từ lời mời + thông báo mặc định
-        _notifications = [...invitationNotifs, ..._defaultNotifications];
+        _notifications = invitationNotifs;
         _isLoading = false;
       });
     } catch (_) {
       setState(() {
-        _notifications = _defaultNotifications;
+        _notifications = [];
         _isLoading = false;
       });
     }
@@ -208,7 +200,7 @@ class _ThongBaoPageState extends State<ThongBaoPage> {
                                     Text(notif["sub"]?.toString() ?? ''),
                                     const SizedBox(height: 5),
                                     Text(
-                                      notif["time"]?.toString() ?? '',
+                                      _formatTime(notif["time"]?.toString()),
                                       style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                     ),
                                   ],

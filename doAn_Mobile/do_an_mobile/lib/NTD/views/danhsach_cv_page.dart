@@ -563,24 +563,14 @@ class _CvDetailContentState extends State<_CvDetailContent> {
     cvStatuses[idCvStr] = newStatus;
     await prefs.setString('ntd_cv_application_statuses', jsonEncode(cvStatuses));
     
-    // update invitations if present
-    final String invitationsRaw = prefs.getString('ntd_invitations') ?? '[]';
-    final List<dynamic> list = jsonDecode(invitationsRaw);
-    final List<Map<String, dynamic>> invitations = list.cast<Map<String, dynamic>>();
-    final idx = invitations.indexWhere((inv) => inv['idCv'] == idCvStr);
-    if (idx != -1) {
-      invitations[idx]['trangThai'] = newStatus;
-      await prefs.setString('ntd_invitations', jsonEncode(invitations));
-      
-      final String uvRaw = prefs.getString('uv_invitations') ?? '[]';
-      final List<dynamic> uvList = jsonDecode(uvRaw);
-      final List<Map<String, dynamic>> uvInvitations = uvList.cast<Map<String, dynamic>>();
-      final uvIdx = uvInvitations.indexWhere((inv) => inv['idCv'] == idCvStr);
-      if (uvIdx != -1) {
-        uvInvitations[uvIdx]['trangThai'] = newStatus;
-        await prefs.setString('uv_invitations', jsonEncode(uvInvitations));
-      }
-    }
+    try {
+      final hoTen = widget.cv['hoTen']?.toString() ?? 'Ứng viên';
+      await InvitationService.uvRespondToInvitation(
+        idCv: idCvStr,
+        response: newStatus,
+        hoTen: hoTen,
+      );
+    } catch (_) {}
     
     if (widget.onStatusChanged != null) {
       widget.onStatusChanged!();

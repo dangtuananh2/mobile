@@ -8,4 +8,5 @@ class ApiConstants {
   static const String login = '$baseUrl/TaiKhoan/login';
   static const String hoSoCv = '$baseUrl/HoSoCV';
   static const String ungVien = '$baseUrl/UngVien';
+  static const String loiMoi = '$baseUrl/LoiMoi';
 }
