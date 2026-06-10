@@ -393,19 +393,19 @@ class _CvFeedCard extends StatelessWidget {
 // ─── Shared widgets ────────────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.name, this.radius = 24, this.fontSize = 15});
+  const _Avatar({required this.name});
   final String name;
-  final double radius;
-  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
+    const double radius = 24;
+    const double fontSize = 15;
     final parts = name.trim().split(' ');
     final initials = parts.map((p) => p.isNotEmpty ? p[0] : '').take(2).join().toUpperCase();
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFF00C853),
-      child: Text(initials, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize)),
+      child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize)),
     );
   }
 }

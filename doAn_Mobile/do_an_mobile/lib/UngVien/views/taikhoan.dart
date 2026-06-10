@@ -14,7 +14,6 @@ import 'package:do_an_mobile/UngVien/views/ntd_uv.dart';
 import 'package:do_an_mobile/UngVien/views/thongbao.dart';
 import 'package:do_an_mobile/UngVien/views/dscty.dart';
 import 'package:do_an_mobile/UngVien/views/kinhnghiem.dart';
-import 'package:do_an_mobile/UngVien/views/capnhatmatkhau.dart';
 
 class TaiKhoan extends StatefulWidget {
   const TaiKhoan({super.key});

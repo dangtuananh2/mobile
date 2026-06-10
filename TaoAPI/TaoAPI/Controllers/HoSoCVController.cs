@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaoAPI.Entities;
 using System.Globalization;
@@ -31,7 +31,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y ?ng viÍn theo t‡i kho?n n‡y"
+                        message = "Kh√¥ng t√¨m th?y ?ng vi√™n theo t√†i kho?n n√†y"
                     });
                 }
 
@@ -42,7 +42,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y t‡i kho?n"
+                        message = "Kh√¥ng t√¨m th?y t√†i kho?n"
                     });
                 }
 
@@ -85,7 +85,7 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "Luu CV th‡nh cÙng",
+                    message = "Luu CV th√†nh c√¥ng",
                     idCv = cv.IdCv,
                     loaiMauCv = cv.LoaiMauCv
                 });
@@ -115,7 +115,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "Chua cÛ CV n‡o"
+                        message = "Chua c√≥ CV n√†o"
                     });
                 }
 
@@ -133,6 +133,37 @@ namespace TaoAPI.Controllers
         }
 
         // GET: api/HoSoCV/by-taikhoan/1
+        [HttpGet("dang-tim-viec")]
+        public async Task<ActionResult> GetDangTimViec()
+        {
+            try
+            {
+                var list = await (
+                    from cv in _context.HoSoCvs
+                    join uv in _context.UngViens on cv.IdUngvien equals uv.IdUngvien
+                    join tk in _context.TaiKhoans on uv.IdTaikhoan equals tk.IdTaikhoan
+                    where cv.TrangThaiTimViec == true
+                    select new CvJoinResult
+                    {
+                        Cv = cv,
+                        UngVien = uv,
+                        TaiKhoan = tk
+                    }
+                ).ToListAsync();
+
+                return Ok(list.Select(x => ToCvResponse(x.Cv, x.UngVien, x.TaiKhoan)));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Loi khi lay danh sach CV dang tim viec",
+                    error = ex.Message,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
+
         [HttpGet("by-taikhoan/{idTaiKhoan}")]
         public async Task<ActionResult> GetAllByTaiKhoan(int idTaiKhoan)
         {
@@ -154,7 +185,7 @@ namespace TaoAPI.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "L?i khi l?y danh s·ch CV",
+                    message = "L?i khi l?y danh s√°ch CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -186,7 +217,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y CV"
+                        message = "Kh√¥ng t√¨m th?y CV"
                     });
                 }
 
@@ -251,7 +282,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y CV"
+                        message = "Kh√¥ng t√¨m th?y CV"
                     });
                 }
 
@@ -262,7 +293,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y ?ng viÍn"
+                        message = "Kh√¥ng t√¨m th?y ?ng vi√™n"
                     });
                 }
 
@@ -273,7 +304,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y t‡i kho?n"
+                        message = "Kh√¥ng t√¨m th?y t√†i kho?n"
                     });
                 }
 
@@ -310,7 +341,7 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "C?p nh?t CV th‡nh cÙng",
+                    message = "C?p nh?t CV th√†nh c√¥ng",
                     idCv = cv.IdCv,
                     loaiMauCv = cv.LoaiMauCv
                 });
@@ -340,7 +371,7 @@ namespace TaoAPI.Controllers
                 {
                     return NotFound(new
                     {
-                        message = "KhÙng tÏm th?y CV"
+                        message = "Kh√¥ng t√¨m th?y CV"
                     });
                 }
 
@@ -351,14 +382,14 @@ namespace TaoAPI.Controllers
 
                 return Ok(new
                 {
-                    message = "C?p nh?t tr?ng th·i CV th‡nh cÙng"
+                    message = "C?p nh?t tr?ng th√°i CV th√†nh c√¥ng"
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new
                 {
-                    message = "L?i khi c?p nh?t tr?ng th·i CV",
+                    message = "L?i khi c?p nh?t tr?ng th√°i CV",
                     error = ex.Message,
                     inner = ex.InnerException?.Message
                 });
@@ -549,7 +580,7 @@ namespace TaoAPI.Controllers
                 {
                     return BadRequest(new
                     {
-                        message = "Email n‡y d„ du?c t‡i kho?n kh·c s? d?ng"
+                        message = "Email n√†y d√£ du?c t√†i kho?n kh√°c s? d?ng"
                     });
                 }
 
@@ -643,3 +674,4 @@ namespace TaoAPI.Controllers
         public bool TrangThaiTimViec { get; set; }
     }
 }
+

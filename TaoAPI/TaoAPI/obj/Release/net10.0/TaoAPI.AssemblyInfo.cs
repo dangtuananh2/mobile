@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f92b12894f9388d6d91169d9f46bf23a50db3ff1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4837d2d0229c6ccd7320ebf39be1d38e87ff81e7")]
 [assembly: System.Reflection.AssemblyProductAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TaoAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -17,8 +17,16 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
   final TextEditingController _mucLuongCtrl = TextEditingController();
   final TextEditingController _diaDiemCtrl = TextEditingController();
   final TextEditingController _moTaCtrl = TextEditingController();
-  final TextEditingController _yeuCauCtrl = TextEditingController();
-  final TextEditingController _quyenLoiCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _skillCtrl.dispose();
+    _tieuDeCtrl.dispose();
+    _mucLuongCtrl.dispose();
+    _diaDiemCtrl.dispose();
+    _moTaCtrl.dispose();
+    super.dispose();
+  }
 
   void _addSkill() {
     if (_skillCtrl.text.isNotEmpty) {
@@ -43,10 +51,13 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
       return;
     }
 
+    final prefs = await SharedPreferences.getInstance();
+    final companyName = prefs.getString('ntd_company_name') ?? 'Công ty TNHH Tango';
+
     // Tạo bản ghi việc làm mới
     final newJob = <String, String>{
       'title': tieuDe,
-      'company': 'Công ty TNHH Tango',
+      'company': companyName,
       'salary': mucLuong.isNotEmpty ? mucLuong : 'Thỏa thuận',
       'location': diaDiem.isNotEmpty ? diaDiem : 'Hồ Chí Minh',
       'description': moTa,
@@ -56,7 +67,6 @@ class _DangTuyenDungPageState extends State<DangTuyenDungPage> {
     };
 
     // Lưu vào SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
     final String raw = prefs.getString('ntd_published_jobs') ?? '[]';
     final List<dynamic> list = jsonDecode(raw);
     list.insert(0, newJob);

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../UngVien/utils/api_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dang_tuyen_dung_page.dart';
 import 'danhsach_cv_page.dart';
 
@@ -32,14 +33,34 @@ class _TrangChuNtdPageState extends State<TrangChuNtdPage> {
           .get(Uri.parse('${ApiConstants.baseUrl}/TinTuyenDung'),
               headers: {'Content-Type': 'application/json'})
           .timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw Exception('Lỗi ${res.statusCode}');
-      final List<dynamic> data = jsonDecode(res.body);
-      setState(() => _jobs = data.cast<Map<String, dynamic>>());
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      setState(() => _isLoading = false);
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        _jobs = data.cast<Map<String, dynamic>>();
+      } else {
+        _jobs = [];
+      }
+    } catch (_) {
+      _jobs = [];
     }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String raw = prefs.getString('ntd_published_jobs') ?? '[]';
+      final List<dynamic> list = jsonDecode(raw);
+      final List<Map<String, dynamic>> localJobs = list.map((j) => {
+        'idTin': j['idTin'] ?? j['id_tin'] ?? 0,
+        'tieuDe': j['title'] ?? j['tieuDe'] ?? 'Chưa có tiêu đề',
+        'kyNang': j['skills'] ?? j['kyNang'] ?? '',
+        'trangThai': j['trangThai'] ?? 'Đang mở',
+        'hanNop': j['publishedAt'] ?? j['hanNop'],
+        'soLuongCv': j['soLuongCv'] ?? 0,
+      }).toList();
+      _jobs = [...localJobs, ..._jobs];
+    } catch (_) {}
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -380,12 +401,12 @@ class _JobSearchDelegate extends SearchDelegate<String> {
       IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, ''));
 
   @override
-  Widget buildResults(BuildContext context) => _buildList();
+  Widget buildResults(BuildContext context) => _buildList(context);
 
   @override
-  Widget buildSuggestions(BuildContext context) => _buildList();
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
 
-  Widget _buildList() {
+  Widget _buildList(BuildContext context) {
     final filtered = jobs.where((j) {
       final q = query.toLowerCase();
       return j['tieuDe']?.toString().toLowerCase().contains(q) == true ||

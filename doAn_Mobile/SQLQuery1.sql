@@ -358,3 +358,28 @@ VALUES
 (5,9),
 (5,10);
 GO
+
+INSERT INTO TaiKhoan (
+    email,
+    mat_khau,
+    vai_tro
+)
+VALUES (
+    'minhdang05@gmail.com',
+    'Ntd@12345',
+    'nha_tuyen_dung'
+);
+
+INSERT INTO TaiKhoan (
+    email,
+    mat_khau,
+    vai_tro
+)
+VALUES (
+    'uv03@gmail.com',
+    'Abc@12345678',
+    'ung_vien'
+);
+
+SELECT *
+FROM TaiKhoan;

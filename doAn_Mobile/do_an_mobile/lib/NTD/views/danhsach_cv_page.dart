@@ -1,8 +1,7 @@
-// lib/NTD/views/danhsach_cv_page.dart
-//
-// THAY THẾ HOÀN TOÀN file cũ tại: do_an_mobile/lib/NTD/views/danhsach_cv_page.dart
- 
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:do_an_mobile/NTD/services/ntd_cv_service.dart';
+import 'package:do_an_mobile/NTD/services/invitation_service.dart';
 import 'package:flutter/material.dart';
 
  
@@ -39,7 +38,56 @@ class _DanhSachCvPageState extends State<DanhSachCvPage> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final list = await _service.getCvsByTinTuyenDung(widget.idTinTuyenDung);
-      setState(() => _allCvs = list);
+      final invitations = await InvitationService.getInvitations();
+
+      final prefs = await SharedPreferences.getInstance();
+      final String cvStatusesRaw = prefs.getString('ntd_cv_application_statuses') ?? '{}';
+      final Map<String, dynamic> cvStatuses = jsonDecode(cvStatusesRaw);
+
+      final updatedList = list.map((cv) {
+        final idCvStr = cv['idCv']?.toString() ?? '';
+        var status = cv['trangThaiUngTuyen']?.toString() ?? 'Mới';
+
+        if (cvStatuses.containsKey(idCvStr)) {
+          status = cvStatuses[idCvStr].toString();
+        } else {
+          final inv = invitations.firstWhere((i) => i['idCv'] == idCvStr, orElse: () => {});
+          if (inv.isNotEmpty) {
+            final invStatus = inv['trangThai']?.toString();
+            if (invStatus != null) {
+              status = invStatus;
+            }
+          }
+        }
+
+        return {
+          ...cv,
+          'trangThaiUngTuyen': status,
+        };
+      }).toList();
+
+      final List<Map<String, dynamic>> extraCvs = [];
+      for (final inv in invitations) {
+        final idCvStr = inv['idCv']?.toString() ?? '';
+        final alreadyInList = updatedList.any((cv) => cv['idCv']?.toString() == idCvStr);
+        if (!alreadyInList) {
+          var status = inv['trangThai'] ?? 'Chờ phản hồi';
+          if (cvStatuses.containsKey(idCvStr)) {
+            status = cvStatuses[idCvStr].toString();
+          }
+
+          extraCvs.add({
+            'idCv': int.tryParse(idCvStr) ?? 0,
+            'hoTen': inv['hoTen'] ?? 'Ứng viên',
+            'viTriUngTuyen': inv['viTri'] ?? 'Chưa cập nhật',
+            'trangThaiUngTuyen': status,
+            'kyNang': '',
+            'ngayTao': inv['thoiGian'],
+          });
+        }
+      }
+
+      setState(() => _allCvs = [...updatedList, ...extraCvs]);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -49,9 +97,14 @@ class _DanhSachCvPageState extends State<DanhSachCvPage> {
  
   List<Map<String, dynamic>> get _filtered {
     if (_tabIndex == 0) return _allCvs;
-    final statusMap = {1: 'Mới', 2: 'Phỏng vấn', 3: 'Đạt', 4: 'Đã loại'};
+    final statusMap = {
+      1: ['Mới', 'Chờ phản hồi'],
+      2: ['Phỏng vấn'],
+      3: ['Đạt', 'Đồng ý'],
+      4: ['Đã loại', 'Từ chối']
+    };
     return _allCvs
-        .where((cv) => cv['trangThaiUngTuyen'] == statusMap[_tabIndex])
+        .where((cv) => (statusMap[_tabIndex] as List<String>).contains(cv['trangThaiUngTuyen']))
         .toList();
   }
  
@@ -125,6 +178,7 @@ class _DanhSachCvPageState extends State<DanhSachCvPage> {
             child: _CvDetailPanel(
               cv: _selectedCv!,
               onClose: () => setState(() => _selectedCv = null),
+              onStatusChanged: _loadCvs,
             ),
           ),
         ],
@@ -138,6 +192,7 @@ class _DanhSachCvPageState extends State<DanhSachCvPage> {
           _CvDetailModal(
             cv: _selectedCv!,
             onClose: () => setState(() => _selectedCv = null),
+            onStatusChanged: _loadCvs,
           ),
       ],
     );
@@ -327,9 +382,9 @@ class _CvCard extends StatelessWidget {
  
   Color _statusColor(String status) {
     return switch (status) {
-      'Đạt' => Colors.green,
+      'Đạt' || 'Đồng ý' => Colors.green,
       'Phỏng vấn' => Colors.blue,
-      'Đã loại' => Colors.red,
+      'Đã loại' || 'Từ chối' => Colors.red,
       _ => Colors.orange,
     };
   }
@@ -353,9 +408,10 @@ class _CvCard extends StatelessWidget {
 // ─── Detail Panel (tablet) ──────────────────────────────────────────────────
  
 class _CvDetailPanel extends StatelessWidget {
-  const _CvDetailPanel({required this.cv, required this.onClose});
+  const _CvDetailPanel({required this.cv, required this.onClose, this.onStatusChanged});
   final Map<String, dynamic> cv;
   final VoidCallback onClose;
+  final VoidCallback? onStatusChanged;
  
   @override
   Widget build(BuildContext context) {
@@ -375,7 +431,7 @@ class _CvDetailPanel extends StatelessWidget {
             ],
           ),
         ),
-        Expanded(child: _CvDetailContent(cv: cv)),
+        Expanded(child: _CvDetailContent(cv: cv, onStatusChanged: onStatusChanged)),
       ],
     );
   }
@@ -384,9 +440,10 @@ class _CvDetailPanel extends StatelessWidget {
 // ─── Detail Modal (mobile) ──────────────────────────────────────────────────
  
 class _CvDetailModal extends StatelessWidget {
-  const _CvDetailModal({required this.cv, required this.onClose});
+  const _CvDetailModal({required this.cv, required this.onClose, this.onStatusChanged});
   final Map<String, dynamic> cv;
   final VoidCallback onClose;
+  final VoidCallback? onStatusChanged;
  
   @override
   Widget build(BuildContext context) {
@@ -416,7 +473,7 @@ class _CvDetailModal extends StatelessWidget {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    Expanded(child: _CvDetailContent(cv: cv)),
+                    Expanded(child: _CvDetailContent(cv: cv, onStatusChanged: onStatusChanged)),
                   ],
                 ),
               ),
@@ -431,8 +488,9 @@ class _CvDetailModal extends StatelessWidget {
 // ─── Detail Content — dùng chung cho panel và modal ─────────────────────────
  
 class _CvDetailContent extends StatefulWidget {
-  const _CvDetailContent({required this.cv});
+  const _CvDetailContent({required this.cv, this.onStatusChanged});
   final Map<String, dynamic> cv;
+  final VoidCallback? onStatusChanged;
  
   @override
   State<_CvDetailContent> createState() => _CvDetailContentState();
@@ -442,11 +500,91 @@ class _CvDetailContentState extends State<_CvDetailContent> {
   int _tab = 0;
   int _rating = 0;
   final TextEditingController _noteCtrl = TextEditingController();
- 
+
   @override
-  void dispose() {
-    _noteCtrl.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadRatingAndNotes();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CvDetailContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.cv['idCv'] != widget.cv['idCv']) {
+      _loadRatingAndNotes();
+    }
+  }
+
+  Future<void> _loadRatingAndNotes() async {
+    final idCvStr = widget.cv['idCv']?.toString() ?? '';
+    if (idCvStr.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final String ratingsRaw = prefs.getString('ntd_cv_ratings') ?? '{}';
+    final String notesRaw = prefs.getString('ntd_cv_notes') ?? '{}';
+
+    final Map<String, dynamic> ratings = jsonDecode(ratingsRaw);
+    final Map<String, dynamic> notes = jsonDecode(notesRaw);
+
+    if (mounted) {
+      setState(() {
+        _rating = ratings[idCvStr] as int? ?? 0;
+        _noteCtrl.text = notes[idCvStr]?.toString() ?? '';
+      });
+    }
+  }
+
+  Future<void> _saveRatingAndNotes() async {
+    final idCvStr = widget.cv['idCv']?.toString() ?? '';
+    if (idCvStr.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final String ratingsRaw = prefs.getString('ntd_cv_ratings') ?? '{}';
+    final String notesRaw = prefs.getString('ntd_cv_notes') ?? '{}';
+
+    final Map<String, dynamic> ratings = jsonDecode(ratingsRaw);
+    final Map<String, dynamic> notes = jsonDecode(notesRaw);
+
+    ratings[idCvStr] = _rating;
+    notes[idCvStr] = _noteCtrl.text.trim();
+
+    await prefs.setString('ntd_cv_ratings', jsonEncode(ratings));
+    await prefs.setString('ntd_cv_notes', jsonEncode(notes));
+  }
+
+  Future<void> _updateStatus(String newStatus) async {
+    final idCvStr = widget.cv['idCv']?.toString() ?? '';
+    if (idCvStr.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final String cvStatusesRaw = prefs.getString('ntd_cv_application_statuses') ?? '{}';
+    final Map<String, dynamic> cvStatuses = jsonDecode(cvStatusesRaw);
+    
+    cvStatuses[idCvStr] = newStatus;
+    await prefs.setString('ntd_cv_application_statuses', jsonEncode(cvStatuses));
+    
+    // update invitations if present
+    final String invitationsRaw = prefs.getString('ntd_invitations') ?? '[]';
+    final List<dynamic> list = jsonDecode(invitationsRaw);
+    final List<Map<String, dynamic>> invitations = list.cast<Map<String, dynamic>>();
+    final idx = invitations.indexWhere((inv) => inv['idCv'] == idCvStr);
+    if (idx != -1) {
+      invitations[idx]['trangThai'] = newStatus;
+      await prefs.setString('ntd_invitations', jsonEncode(invitations));
+      
+      final String uvRaw = prefs.getString('uv_invitations') ?? '[]';
+      final List<dynamic> uvList = jsonDecode(uvRaw);
+      final List<Map<String, dynamic>> uvInvitations = uvList.cast<Map<String, dynamic>>();
+      final uvIdx = uvInvitations.indexWhere((inv) => inv['idCv'] == idCvStr);
+      if (uvIdx != -1) {
+        uvInvitations[uvIdx]['trangThai'] = newStatus;
+        await prefs.setString('uv_invitations', jsonEncode(uvInvitations));
+      }
+    }
+    
+    if (widget.onStatusChanged != null) {
+      widget.onStatusChanged!();
+    }
   }
  
   @override
@@ -539,7 +677,10 @@ class _CvDetailContentState extends State<_CvDetailContent> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     side: const BorderSide(color: Colors.red),
                   ),
-                  onPressed: () => _showSnack('Đã chuyển CV vào danh sách loại!'),
+                  onPressed: () async {
+                    await _updateStatus('Từ chối');
+                    _showSnack('Đã từ chối hồ sơ ứng viên này!');
+                  },
                   child: const Text('TỪ CHỐI',
                       style: TextStyle(
                           color: Colors.red, fontWeight: FontWeight.bold)),
@@ -552,8 +693,10 @@ class _CvDetailContentState extends State<_CvDetailContent> {
                     backgroundColor: const Color(0xFF00C853),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  onPressed: () =>
-                      _showSnack('Đã lưu và gửi email hẹn lịch!', success: true),
+                  onPressed: () async {
+                    await _updateStatus('Phỏng vấn');
+                    _showSnack('Đã hẹn phỏng vấn ứng viên này!', success: true);
+                  },
                   child: const Text('HẸN PHỎNG VẤN',
                       style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
@@ -654,9 +797,10 @@ class _CvDetailContentState extends State<_CvDetailContent> {
               backgroundColor: Colors.blue,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
-            onPressed: () {
+            onPressed: () async {
               FocusScope.of(context).unfocus();
-              _showSnack('Đã lưu ghi chú nội bộ!');
+              await _saveRatingAndNotes();
+              _showSnack('Đã lưu ghi chú nội bộ và đánh giá!');
             },
             child: const Text('Lưu Ghi Chú',
                 style: TextStyle(color: Colors.white)),

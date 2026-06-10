@@ -3663,23 +3663,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Van Khai\\.nuget\\packages\\": {},
+    "C:\\Users\\MinhDang\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Mobile_DoAn\\mobile\\TaoAPI\\TaoAPI\\TaoAPI.csproj",
+      "projectUniqueName": "C:\\Users\\MinhDang\\Downloads\\MB\\mobile\\TaoAPI\\TaoAPI\\TaoAPI.csproj",
       "projectName": "TaoAPI",
-      "projectPath": "C:\\Mobile_DoAn\\mobile\\TaoAPI\\TaoAPI\\TaoAPI.csproj",
-      "packagesPath": "C:\\Users\\Van Khai\\.nuget\\packages\\",
-      "outputPath": "C:\\Mobile_DoAn\\mobile\\TaoAPI\\TaoAPI\\obj\\",
+      "projectPath": "C:\\Users\\MinhDang\\Downloads\\MB\\mobile\\TaoAPI\\TaoAPI\\TaoAPI.csproj",
+      "packagesPath": "C:\\Users\\MinhDang\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\MinhDang\\Downloads\\MB\\mobile\\TaoAPI\\TaoAPI\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Van Khai\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\MinhDang\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],

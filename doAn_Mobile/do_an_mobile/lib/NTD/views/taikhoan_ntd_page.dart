@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../UngVien/views/login.dart';
 import 'capnhat_thongtin_ntd_page.dart'; // File này phải để cùng thư mục nhé
 
@@ -13,6 +14,22 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
   bool trangThaiTuyenDung = true;
   bool nhanTinNhanTrucTiep = false;
   IconData _avatarIcon = Icons.business;
+  String tenCongTy = 'Công ty TNHH Tango';
+  String maSoThue = '0123456789';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyData();
+  }
+
+  Future<void> _loadCompanyData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      tenCongTy = prefs.getString('ntd_company_name') ?? 'Công ty TNHH Tango';
+      maSoThue = prefs.getString('ntd_company_tax') ?? '0123456789';
+    });
+  }
 
   void _showAvatarPicker() {
     showModalBottomSheet(
@@ -124,19 +141,19 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            "Công ty TNHH Tango",
-                            style: TextStyle(
+                            tenCongTy,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 5),
+                          const SizedBox(height: 5),
                           Text(
-                            "Mã số thuế: 0123456789",
-                            style: TextStyle(color: Colors.grey),
+                            "Mã số thuế: $maSoThue",
+                            style: const TextStyle(color: Colors.grey),
                           ),
                         ],
                       ),
@@ -207,13 +224,16 @@ class _TaiKhoanNtdPageState extends State<TaiKhoanNtdPage> {
                   buildItem(
                     Icons.edit_document,
                     "Cập nhật thông tin công ty",
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final updated = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const CapNhatThongTinNtdPage(),
                         ),
                       );
+                      if (updated == true) {
+                        _loadCompanyData();
+                      }
                     },
                   ),
 

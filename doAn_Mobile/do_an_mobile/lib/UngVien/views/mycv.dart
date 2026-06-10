@@ -127,6 +127,32 @@ class _MyCVState extends State<MyCV> {
 
       await _saveUploadedCvFile(selectedFile);
 
+      // Create a mock CV in the database for the uploaded file so NTD can search and see it
+      final prefs = await SharedPreferences.getInstance();
+      final hoTen = prefs.getString('userName') ?? 'Ứng viên';
+      final email = prefs.getString('userEmail') ?? 'ungvien@gmail.com';
+      final sdt = prefs.getString('userPhone') ?? '0900000000';
+
+      final mockCv = {
+        'tieuDeCv': selectedFile.name,
+        'loaiMauCv': 'simple',
+        'hoTen': hoTen,
+        'email': email,
+        'soDienThoai': sdt,
+        'viTriUngTuyen': 'Ứng viên tự do (CV đính kèm)',
+        'kyNang': 'CV đính kèm, PDF',
+        'trangThaiTimViec': true,
+        'trangThai': true,
+        'ngayTao': DateTime.now().toIso8601String(),
+      };
+
+      try {
+        await _cvController.createCv(mockCv);
+        await _loadAllCv();
+      } catch (err) {
+        debugPrint('Error syncing uploaded CV to DB: $err');
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -136,7 +162,7 @@ class _MyCVState extends State<MyCV> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã chọn file: ${selectedFile.name}'),
+          content: Text('Đã chọn file và đồng bộ CV: ${selectedFile.name}'),
         ),
       );
     } catch (e) {
